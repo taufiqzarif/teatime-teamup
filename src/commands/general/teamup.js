@@ -160,13 +160,14 @@ module.exports = {
           .join("\n");
         const updatedEmbed = new EmbedBuilder()
           .setColor(`#${randomHexColor}`)
-          .setTitle(`${selectedGame} Team Up Invitation`)
+          .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
           .addFields([
-            { name: "Max Players", value: maxPlayers.toString(), inline: true },
-            { name: "Host", value: `<@${ownerId}>`, inline: true },
-            { name: "Players", value: updatedPlayers },
+            { name: "👥 Max Players", value: maxPlayers.toString(), inline: true },
+            { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
+            { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(updatedInvite.timestamp);
+          .setTimestamp(updatedInvite.timestamp)
+          .setFooter({ text: "React ✅ to join the team up!" });
         await message.edit({ embeds: [updatedEmbed] });
       });
 
@@ -192,13 +193,14 @@ module.exports = {
         // Create the updated embed
         const updatedEmbed = new EmbedBuilder()
           .setColor(`#${randomHexColor}`)
-          .setTitle(`${selectedGame} Team Up Invitation`)
+          .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
           .addFields([
-            { name: "Max Players", value: maxPlayers.toString(), inline: true },
-            { name: "Host", value: `<@${ownerId}>`, inline: true },
-            { name: "Players", value: updatedPlayers },
+            { name: "👥 Max Players", value: maxPlayers.toString(), inline: true },
+            { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
+            { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(updatedInvite.timestamp);
+          .setTimestamp(updatedInvite.timestamp)
+          .setFooter({ text: "React ✅ to join the team up!" });
 
         // Edit the original message with the updated embed
         await message.edit({ embeds: [updatedEmbed] });
