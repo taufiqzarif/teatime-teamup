@@ -1,8 +1,6 @@
 require("dotenv").config;
 const { REST, Routes } = require("discord.js");
 const { TOKEN, CLIENT_ID } = process.env;
-console.log(TOKEN);
-console.log(CLIENT_ID);
 const fs = require("fs");
 
 module.exports = async (client) => {
@@ -19,7 +17,7 @@ module.exports = async (client) => {
 				const command = require(`../../commands/${folder}/${file}`);
 				commands.set(command.data.name, command);
 				commandArray.push(command.data.toJSON());
-				console.log(`Command ${command.data.name} added.`);
+				// console.log(`Command ${command.data.name} added.`);
 			}
 		}
 
