@@ -107,8 +107,8 @@ module.exports = {
           { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
           { name: "🕹️ Current Team", value: `<@${ownerId}>` },
         ])
-        .setTimestamp()
-        .setFooter({ text: "React ✅ to join the team up!" });
+        .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." })
+        .setTimestamp();
 
       const message = await interaction.editReply({
         embeds: [embed],
@@ -162,12 +162,16 @@ module.exports = {
           .setColor(`#${randomHexColor}`)
           .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
           .addFields([
-            { name: "👥 Max Players", value: maxPlayers.toString(), inline: true },
+            {
+              name: "👥 Max Players",
+              value: maxPlayers.toString(),
+              inline: true,
+            },
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
           .setTimestamp(updatedInvite.timestamp)
-          .setFooter({ text: "React ✅ to join the team up!" });
+          .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." });
         await message.edit({ embeds: [updatedEmbed] });
       });
 
@@ -195,31 +199,20 @@ module.exports = {
           .setColor(`#${randomHexColor}`)
           .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
           .addFields([
-            { name: "👥 Max Players", value: maxPlayers.toString(), inline: true },
+            {
+              name: "👥 Max Players",
+              value: maxPlayers.toString(),
+              inline: true,
+            },
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
           .setTimestamp(updatedInvite.timestamp)
-          .setFooter({ text: "React ✅ to join the team up!" });
+          .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." });
 
         // Edit the original message with the updated embed
         await message.edit({ embeds: [updatedEmbed] });
       });
-
-      client.on('interactionCreate', async interaction => {
-        if (!interaction.isButton()) return;
-    
-        // Your button handling logic
-        if (interaction.customId === 'cancel_invite') {
-            // Ensure interaction is defined and has the necessary properties/methods
-            if (!interaction.user || !interaction.user.id) {
-                console.error('User information is missing in the interaction');
-                return;
-            }
-    
-            // Rest of your button handling code...
-        }
-    });
     } catch (error) {
       console.error(error);
       await interaction.editReply({

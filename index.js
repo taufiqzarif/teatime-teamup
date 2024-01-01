@@ -5,7 +5,6 @@ const { connect } = require("mongoose");
 const Invites = require("./src/schema/invites");
 
 const { TOKEN, DBTOKEN } = process.env;
-console.log(DBTOKEN);
 
 const client = new Client({
   intents: [
@@ -35,7 +34,8 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.customId === "cancel_invite") {
     const ownerId = interaction.user.id;
     const commandOwnerId = interaction.message.interaction.user.id;
-    
+
+    await interaction.deferReply({ ephemeral: true });
     // Check if the user who clicked the button is the command owner
     if (interaction.user.id !== commandOwnerId) {
       await interaction.reply({
@@ -47,7 +47,7 @@ client.on("interactionCreate", async (interaction) => {
     // Check if there's an existing invite
     const invite = await Invites.findOne({ ownerId: ownerId });
     if (!invite) {
-      await interaction.reply({
+      await interaction.editReply({
         content: "No active invite found.",
         ephemeral: true,
       });
@@ -58,10 +58,11 @@ client.on("interactionCreate", async (interaction) => {
     await Invites.deleteOne({ ownerId: ownerId });
 
     // Respond to the interaction
-    await interaction.update({
+    await interaction.editReply({
       content: "Your invite has been canceled.",
       embeds: [],
       components: [],
+      ephemeral: true,
     });
   }
 });
