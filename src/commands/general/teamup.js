@@ -33,7 +33,7 @@ module.exports = {
 
   async execute(interaction, client) {
     try {
-      await interaction.deferReply({});
+      // await interaction.deferReply();
 
       const ownerId = interaction.user.id;
       const selectedGame = interaction.options.getString("game");
@@ -87,16 +87,18 @@ module.exports = {
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
           })
-          .setTimestamp(existingInvite.timestamp);
-        await interaction.editReply({
+          .setTimestamp(Date.parse(existingInvite.timestamp) + 3_600_000);
+
+        await interaction.reply({
           content:
             "You have already created an invite. Please cancel your existing invite to create a new one.",
           embeds: [existingEmbed],
           components: [row],
+          ephemeral: true,
         });
         return;
       }
-
+      await interaction.deferReply();
       // Create new invite document in database and include the owner as a player
       const newInvite = new Invites({
         ownerId: ownerId,
@@ -125,11 +127,10 @@ module.exports = {
         .setFooter({
           text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
         })
-        .setTimestamp();
+        .setTimestamp(Date.now() + 3_600_000);
 
       const message = await interaction.editReply({
         embeds: [embed],
-        components: [row],
       });
       const messageFetch = await interaction.channel.messages.fetch(message.id);
       // console.log("Fetched message:", message);
@@ -187,7 +188,7 @@ module.exports = {
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(updatedInvite.timestamp)
+          .setTimestamp(Date.parse(updatedInvite.timestamp) + 3_600_000)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
@@ -227,7 +228,7 @@ module.exports = {
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(updatedInvite.timestamp)
+          .setTimestamp(Date.parse(updatedInvite.timestamp) + 3_600_000)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
@@ -265,7 +266,7 @@ module.exports = {
       });
     } catch (error) {
       console.error(error);
-      await interaction.editReply({
+      await interaction.reply({
         content: "There was an error while executing this command!",
         ephemeral: true,
       });
