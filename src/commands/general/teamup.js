@@ -87,7 +87,7 @@ module.exports = {
           ])
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
           })
           .setTimestamp(Date.parse(existingInvite.timestamp) + TIME_LIMIT);
 
@@ -127,7 +127,7 @@ module.exports = {
         ])
         .setThumbnail(gameThumbnailURL, { dynamic: true })
         .setFooter({
-          text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+          text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
         })
         .setTimestamp(Date.now() + TIME_LIMIT);
 
@@ -193,7 +193,7 @@ module.exports = {
           .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
           });
         await message.edit({ embeds: [updatedEmbed] });
       });
@@ -233,7 +233,7 @@ module.exports = {
           .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
           });
 
         // Edit the original message with the updated embed
