@@ -38,7 +38,7 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply({ ephemeral: true });
     // Check if the user who clicked the button is the command owner
     if (interaction.user.id !== commandOwnerId) {
-      await interaction.reply({
+      await interaction.editReply({
         content: "You are not authorized to cancel this invite.",
         ephemeral: true,
       });

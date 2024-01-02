@@ -33,7 +33,7 @@ module.exports = {
 
   async execute(interaction, client) {
     try {
-      await interaction.deferReply({});
+      // await interaction.deferReply();
 
       const ownerId = interaction.user.id;
       const selectedGame = interaction.options.getString("game");
@@ -42,6 +42,16 @@ module.exports = {
         .toString(16)
         .padStart(6, "0");
 
+      // Create custom url for embed thumbnail depends on selectedGame
+      // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
+      const gameThumbnailURL =
+        selectedGame.toLowerCase().includes("valo") ||
+        selectedGame.toLowerCase().includes("valorant")
+          ? "https://cdn.discordapp.com/emojis/685247196979134495.webp?size=96&quality=lossless"
+          : selectedGame.toLowerCase().includes("lc") ||
+            selectedGame.toLowerCase().includes("lethal company")
+          ? "https://cdn.discordapp.com/emojis/1173369632082645072.webp?size=96&quality=lossless"
+          : null;
       const cancelButton = new ButtonBuilder()
         .setCustomId("cancel_invite")
         .setLabel("Cancel Invite")
@@ -73,16 +83,22 @@ module.exports = {
                 .join("\n"),
             },
           ])
-          .setTimestamp(existingInvite.timestamp);
-        await interaction.editReply({
+          .setThumbnail(gameThumbnailURL, { dynamic: true })
+          .setFooter({
+            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+          })
+          .setTimestamp(Date.parse(existingInvite.timestamp) + 3_600_000);
+
+        await interaction.reply({
           content:
             "You have already created an invite. Please cancel your existing invite to create a new one.",
           embeds: [existingEmbed],
           components: [row],
+          ephemeral: true,
         });
         return;
       }
-
+      await interaction.deferReply();
       // Create new invite document in database and include the owner as a player
       const newInvite = new Invites({
         ownerId: ownerId,
@@ -107,12 +123,14 @@ module.exports = {
           { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
           { name: "🕹️ Current Team", value: `<@${ownerId}>` },
         ])
-        .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." })
-        .setTimestamp();
+        .setThumbnail(gameThumbnailURL, { dynamic: true })
+        .setFooter({
+          text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+        })
+        .setTimestamp(Date.now() + 3_600_000);
 
       const message = await interaction.editReply({
         embeds: [embed],
-        components: [row],
       });
       const messageFetch = await interaction.channel.messages.fetch(message.id);
       // console.log("Fetched message:", message);
@@ -170,8 +188,11 @@ module.exports = {
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(updatedInvite.timestamp)
-          .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." });
+          .setTimestamp(Date.parse(updatedInvite.timestamp) + 3_600_000)
+          .setThumbnail(gameThumbnailURL, { dynamic: true })
+          .setFooter({
+            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+          });
         await message.edit({ embeds: [updatedEmbed] });
       });
 
@@ -207,15 +228,45 @@ module.exports = {
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(updatedInvite.timestamp)
-          .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." });
+          .setTimestamp(Date.parse(updatedInvite.timestamp) + 3_600_000)
+          .setThumbnail(gameThumbnailURL, { dynamic: true })
+          .setFooter({
+            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+          });
 
         // Edit the original message with the updated embed
         await message.edit({ embeds: [updatedEmbed] });
       });
+
+      // When the collector timer ends, delete the invite from the database
+      collector.on("end", async () => {
+        const invite = await Invites.findOne({ ownerId: ownerId });
+        if (invite) {
+          const currentPlayers = invite.players
+            .map((player) => `<@${player.userId}>`)
+            .join("\n");
+          const expiredEmbed = new EmbedBuilder()
+            .setColor(`#${randomHexColor}`)
+            .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
+            .setDescription("This team up invitation has expired!")
+            .addFields([
+              {
+                name: "👥 Max Players",
+                value: maxPlayers.toString(),
+                inline: true,
+              },
+              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
+              { name: "🕹️ Current Team", value: currentPlayers },
+            ])
+            .setThumbnail(gameThumbnailURL, { dynamic: true })
+            .setTimestamp();
+          await invite.deleteOne();
+          await message.edit({ embeds: [expiredEmbed], components: [] });
+        }
+      });
     } catch (error) {
       console.error(error);
-      await interaction.editReply({
+      await interaction.reply({
         content: "There was an error while executing this command!",
         ephemeral: true,
       });
