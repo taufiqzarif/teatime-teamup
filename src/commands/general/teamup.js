@@ -9,6 +9,8 @@ const {
 const Invites = require("../../schema/invites");
 const { CLIENT_ID } = process.env;
 
+const TIME_LIMIT = 7_200_000; // 2 hours in milliseconds
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("teamup")
@@ -87,7 +89,7 @@ module.exports = {
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
           })
-          .setTimestamp(Date.parse(existingInvite.timestamp) + 3_600_000);
+          .setTimestamp(Date.parse(existingInvite.timestamp) + TIME_LIMIT);
 
         await interaction.reply({
           content:
@@ -127,7 +129,7 @@ module.exports = {
         .setFooter({
           text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
         })
-        .setTimestamp(Date.now() + 3_600_000);
+        .setTimestamp(Date.now() + TIME_LIMIT);
 
       const message = await interaction.editReply({
         embeds: [embed],
@@ -148,7 +150,7 @@ module.exports = {
 
       const collector = message.createReactionCollector({
         filter: filterUser,
-        time: 3_600_000,
+        time: TIME_LIMIT,
         dispose: true,
       });
 
@@ -188,7 +190,7 @@ module.exports = {
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(Date.parse(updatedInvite.timestamp) + 3_600_000)
+          .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
@@ -228,7 +230,7 @@ module.exports = {
             { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(Date.parse(updatedInvite.timestamp) + 3_600_000)
+          .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
