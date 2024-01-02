@@ -42,6 +42,16 @@ module.exports = {
         .toString(16)
         .padStart(6, "0");
 
+      // Create custom url for embed thumbnail depends on selectedGame
+      // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
+      const gameThumbnailURL =
+        selectedGame.toLowerCase().includes("valo") ||
+        selectedGame.toLowerCase().includes("valorant")
+          ? "https://cdn.discordapp.com/emojis/685247196979134495.webp?size=96&quality=lossless"
+          : selectedGame.toLowerCase().includes("lc") ||
+            selectedGame.toLowerCase().includes("lethal company")
+          ? "https://cdn.discordapp.com/emojis/1173369632082645072.webp?size=96&quality=lossless"
+          : null;
       const cancelButton = new ButtonBuilder()
         .setCustomId("cancel_invite")
         .setLabel("Cancel Invite")
@@ -73,6 +83,10 @@ module.exports = {
                 .join("\n"),
             },
           ])
+          .setThumbnail(gameThumbnailURL, { dynamic: true })
+          .setFooter({
+            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+          })
           .setTimestamp(existingInvite.timestamp);
         await interaction.editReply({
           content:
@@ -107,7 +121,10 @@ module.exports = {
           { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
           { name: "🕹️ Current Team", value: `<@${ownerId}>` },
         ])
-        .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." })
+        .setThumbnail(gameThumbnailURL, { dynamic: true })
+        .setFooter({
+          text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+        })
         .setTimestamp();
 
       const message = await interaction.editReply({
@@ -171,7 +188,10 @@ module.exports = {
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
           .setTimestamp(updatedInvite.timestamp)
-          .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." });
+          .setThumbnail(gameThumbnailURL, { dynamic: true })
+          .setFooter({
+            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+          });
         await message.edit({ embeds: [updatedEmbed] });
       });
 
@@ -208,10 +228,40 @@ module.exports = {
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
           .setTimestamp(updatedInvite.timestamp)
-          .setFooter({ text: "React ✅ to join the team up! Invitation is only valid for 1 hour." });
+          .setThumbnail(gameThumbnailURL, { dynamic: true })
+          .setFooter({
+            text: "React ✅ to join the team up! Invitation is only valid for 1 hour.",
+          });
 
         // Edit the original message with the updated embed
         await message.edit({ embeds: [updatedEmbed] });
+      });
+
+      // When the collector timer ends, delete the invite from the database
+      collector.on("end", async () => {
+        const invite = await Invites.findOne({ ownerId: ownerId });
+        if (invite) {
+          const currentPlayers = invite.players
+            .map((player) => `<@${player.userId}>`)
+            .join("\n");
+          const expiredEmbed = new EmbedBuilder()
+            .setColor(`#${randomHexColor}`)
+            .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
+            .setDescription("This team up invitation has expired!")
+            .addFields([
+              {
+                name: "👥 Max Players",
+                value: maxPlayers.toString(),
+                inline: true,
+              },
+              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
+              { name: "🕹️ Current Team", value: currentPlayers },
+            ])
+            .setThumbnail(gameThumbnailURL, { dynamic: true })
+            .setTimestamp();
+          await invite.deleteOne();
+          await message.edit({ embeds: [expiredEmbed], components: [] });
+        }
       });
     } catch (error) {
       console.error(error);
