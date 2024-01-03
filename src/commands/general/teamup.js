@@ -20,7 +20,7 @@ module.exports = {
         .setName("game")
         .setDescription("The game you want to play!")
         .setRequired(true)
-        .setMaxLength(100)
+        .setMaxLength(50)
     )
     .addNumberOption((option) =>
       option
@@ -31,6 +31,13 @@ module.exports = {
         .setRequired(true)
         .setMinValue(2)
         .setMaxValue(20)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("description")
+        .setDescription("The description of your team up!")
+        .setRequired(false)
+        .setMaxLength(50)
     ),
 
   async execute(interaction, client) {
@@ -38,8 +45,12 @@ module.exports = {
       // await interaction.deferReply();
 
       const ownerId = interaction.user.id;
-      const selectedGame = interaction.options.getString("game");
+
+      let selectedGame = interaction.options.getString("game");
+      // Uppercase first letter of game name
+      selectedGame = selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1);
       const maxPlayers = interaction.options.getNumber("maxplayers");
+      const description = interaction.options.getString("description");
       const randomHexColor = Math.floor(Math.random() * 16777215)
         .toString(16)
         .padStart(6, "0");
@@ -67,6 +78,7 @@ module.exports = {
         const existingEmbed = new EmbedBuilder()
           .setColor(`#${randomHexColor}`)
           .setTitle(`${existingInvite.game} Team Up Invitation`)
+          .setDescription(existingInvite.description)
           .addFields([
             {
               name: "Max Players",
@@ -105,6 +117,7 @@ module.exports = {
       const newInvite = new Invites({
         ownerId: ownerId,
         game: selectedGame,
+        description: description,
         players: [
           {
             userId: ownerId,
@@ -116,6 +129,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(`#${randomHexColor}`)
         .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
+        .setDescription(description)
         .addFields([
           {
             name: "👥 Max Players",
@@ -156,14 +170,13 @@ module.exports = {
 
       collector.on("collect", async (reaction, user) => {
         // console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
-        // Fetch the invite from the database
+
         const invite = await Invites.findOne({ ownerId: ownerId });
 
         // Check if the maximum number of players has been reached
         if (invite.players.length >= maxPlayers) {
-          // Optionally, you can remove the reaction if max players reached
           reaction.users.remove(user);
-          return; // Stop execution as the max number of players has been reached
+          return;
         }
 
         // Check if the user is already in the players list
@@ -178,24 +191,50 @@ module.exports = {
         const updatedPlayers = updatedInvite.players
           .map((player) => `<@${player.userId}>`)
           .join("\n");
-        const updatedEmbed = new EmbedBuilder()
-          .setColor(`#${randomHexColor}`)
-          .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-          .addFields([
-            {
-              name: "👥 Max Players",
-              value: maxPlayers.toString(),
-              inline: true,
-            },
-            { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
-            { name: "🕹️ Current Team", value: updatedPlayers },
-          ])
-          .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
-          .setThumbnail(gameThumbnailURL, { dynamic: true })
-          .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
-          });
-        await message.edit({ embeds: [updatedEmbed] });
+
+        // Show different embed if the maximum number of players has been reached
+        if (updatedInvite.players.length === maxPlayers) {
+          // show 2 description, 1st description is the original description, 2nd description is the full description
+          const fullEmbed = new EmbedBuilder()
+            .setColor(`#${randomHexColor}`)
+            .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
+            .setDescription(`**Team Up FULL! GLHF! 🎉**\n\n${updatedInvite.description ?? " "}`)
+            .addFields([
+              {
+                name: "👥 Max Players",
+                value: maxPlayers.toString(),
+                inline: true,
+              },
+              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
+              { name: "🕹️ Current Team", value: updatedPlayers },
+            ])
+            .setThumbnail(gameThumbnailURL, { dynamic: true })
+            .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
+            .setFooter({
+              text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+            });
+          await message.edit({ embeds: [fullEmbed] });
+        } else {
+          const updatedEmbed = new EmbedBuilder()
+            .setColor(`#${randomHexColor}`)
+            .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
+            .setDescription(updatedInvite.description)
+            .addFields([
+              {
+                name: "👥 Max Players",
+                value: maxPlayers.toString(),
+                inline: true,
+              },
+              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
+              { name: "🕹️ Current Team", value: updatedPlayers },
+            ])
+            .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
+            .setThumbnail(gameThumbnailURL, { dynamic: true })
+            .setFooter({
+              text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+            });
+          await message.edit({ embeds: [updatedEmbed] });
+        }
       });
 
       collector.on("remove", async (reaction, user) => {
@@ -221,6 +260,7 @@ module.exports = {
         const updatedEmbed = new EmbedBuilder()
           .setColor(`#${randomHexColor}`)
           .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
+          .setDescription(updatedInvite.description)
           .addFields([
             {
               name: "👥 Max Players",
