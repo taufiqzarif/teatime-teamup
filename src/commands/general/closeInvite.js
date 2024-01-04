@@ -29,8 +29,16 @@ module.exports = {
 
     // Check if sent message exists
     if (sentMessage) {
+      let description = sentMessage.embeds[0].description || "";
+
+      const fullText = "**Team Up FULL! GLHF! 🎉**";
+      if (description.includes(fullText)) {
+        description = description.replace(fullText, "").trim();
+      }
+
+      const updatedDescription = `**Team Up invite CLOSED!** ❌\n\n${description}`;
       const closedEmbed = new EmbedBuilder(sentMessage.embeds[0])
-        .setDescription("**Team Up invite CLOSED!** ❌")
+        .setDescription(updatedDescription)
         .setFooter({ text: "Invitation is no longer active." });
 
       await sentMessage.reactions.removeAll();
