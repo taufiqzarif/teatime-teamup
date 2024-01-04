@@ -42,13 +42,12 @@ module.exports = {
 
   async execute(interaction, client) {
     try {
-      // await interaction.deferReply();
-
       const ownerId = interaction.user.id;
 
       let selectedGame = interaction.options.getString("game");
       // Uppercase first letter of game name
-      selectedGame = selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1);
+      selectedGame =
+        selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1);
       const maxPlayers = interaction.options.getNumber("maxplayers");
       const description = interaction.options.getString("description");
       const randomHexColor = Math.floor(Math.random() * 16777215)
@@ -57,13 +56,12 @@ module.exports = {
 
       // Create custom url for embed thumbnail depends on selectedGame
       // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
-      const gameThumbnailURL =
-        selectedGame.toLowerCase().includes("valo")
-          ? "https://cdn.discordapp.com/emojis/685247196979134495.webp?size=96&quality=lossless"
-          : selectedGame.toLowerCase().includes("lc") ||
-            selectedGame.toLowerCase().includes("lethal company")
-          ? "https://cdn.discordapp.com/emojis/1173369632082645072.webp?size=96&quality=lossless"
-          : null;
+      const gameThumbnailURL = selectedGame.toLowerCase().includes("valo")
+        ? "https://cdn.discordapp.com/emojis/685247196979134495.webp?size=96&quality=lossless"
+        : selectedGame.toLowerCase().includes("lc") ||
+          selectedGame.toLowerCase().includes("lethal company")
+        ? "https://cdn.discordapp.com/emojis/1173369632082645072.webp?size=96&quality=lossless"
+        : null;
       const closeButton = new ButtonBuilder()
         .setCustomId("close_invite")
         .setLabel("Close Invite")
@@ -80,13 +78,13 @@ module.exports = {
           .setDescription(existingInvite.description)
           .addFields([
             {
-              name: "Max Players",
-              value: existingInvite.maxPlayers.toString(),
+              name: "Host",
+              value: `<@${existingInvite.ownerId}>`,
               inline: true,
             },
             {
-              name: "Host",
-              value: `<@${existingInvite.ownerId}>`,
+              name: "Max Players",
+              value: existingInvite.maxPlayers.toString(),
               inline: true,
             },
             {
@@ -130,12 +128,12 @@ module.exports = {
         .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
         .setDescription(description)
         .addFields([
+          { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
           {
             name: "👥 Max Players",
             value: maxPlayers.toString(),
             inline: true,
           },
-          { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
           { name: "🕹️ Current Team", value: `<@${ownerId}>` },
         ])
         .setThumbnail(gameThumbnailURL, { dynamic: true })
@@ -205,14 +203,18 @@ module.exports = {
           const fullEmbed = new EmbedBuilder()
             .setColor(`#${randomHexColor}`)
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-            .setDescription(`**Team Up FULL! GLHF! 🎉**\n\n${updatedInvite.description ?? " "}`)
+            .setDescription(
+              `**Team Up FULL! GLHF! 🎉**\n\n${
+                updatedInvite.description ?? " "
+              }`
+            )
             .addFields([
+              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               {
                 name: "👥 Max Players",
                 value: maxPlayers.toString(),
                 inline: true,
               },
-              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               { name: "🕹️ Current Team", value: updatedPlayers },
             ])
             .setThumbnail(gameThumbnailURL, { dynamic: true })
@@ -227,12 +229,12 @@ module.exports = {
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
             .setDescription(updatedInvite.description)
             .addFields([
+              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               {
                 name: "👥 Max Players",
                 value: maxPlayers.toString(),
                 inline: true,
               },
-              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               { name: "🕹️ Current Team", value: updatedPlayers },
             ])
             .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
@@ -248,7 +250,7 @@ module.exports = {
         // console.log(`User ${user.tag} removed their reaction.`);
         // Fetch the invite from the database
         const invite = await Invites.findOne({ ownerId: ownerId });
-        
+
         // Check if the invite still exists
         if (!invite) {
           return;
@@ -274,12 +276,12 @@ module.exports = {
           .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
           .setDescription(updatedInvite.description)
           .addFields([
+            { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             {
               name: "👥 Max Players",
               value: maxPlayers.toString(),
               inline: true,
             },
-            { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
           .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
@@ -304,18 +306,18 @@ module.exports = {
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
             .setDescription("Team Up invite **EXPIRED!** ❌")
             .addFields([
+              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               {
                 name: "👥 Max Players",
                 value: maxPlayers.toString(),
                 inline: true,
               },
-              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               { name: "🕹️ Current Team", value: currentPlayers },
             ])
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setTimestamp();
           await invite.deleteOne();
-          
+
           try {
             await message.reactions.removeAll();
             await message.edit({ embeds: [expiredEmbed], components: [] });
@@ -325,7 +327,6 @@ module.exports = {
             }
             console.error("Error updating expired invite message:", error);
           }
-
         }
       });
     } catch (error) {
