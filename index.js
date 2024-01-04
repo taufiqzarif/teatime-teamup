@@ -31,7 +31,7 @@ for (const folder of functionPath) {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isButton()) return;
 
-  if (interaction.customId === "cancel_invite") {
+  if (interaction.customId === "close_invite") {
     const ownerId = interaction.user.id;
     const commandOwnerId = interaction.message.interaction.user.id;
 
