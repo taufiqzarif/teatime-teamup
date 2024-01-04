@@ -9,6 +9,7 @@ const invitesSchema = new Schema({
             userId: { type: String, required: true },
         }
     ],
+    messageId: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
     maxPlayers: { type: Number, required: true },
 });

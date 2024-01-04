@@ -58,19 +58,18 @@ module.exports = {
       // Create custom url for embed thumbnail depends on selectedGame
       // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
       const gameThumbnailURL =
-        selectedGame.toLowerCase().includes("valo") ||
-        selectedGame.toLowerCase().includes("valorant")
+        selectedGame.toLowerCase().includes("valo")
           ? "https://cdn.discordapp.com/emojis/685247196979134495.webp?size=96&quality=lossless"
           : selectedGame.toLowerCase().includes("lc") ||
             selectedGame.toLowerCase().includes("lethal company")
           ? "https://cdn.discordapp.com/emojis/1173369632082645072.webp?size=96&quality=lossless"
           : null;
-      const cancelButton = new ButtonBuilder()
-        .setCustomId("cancel_invite")
-        .setLabel("Cancel Invite")
+      const closeButton = new ButtonBuilder()
+        .setCustomId("close_invite")
+        .setLabel("Close Invite")
         .setStyle(ButtonStyle.Danger);
 
-      const row = new ActionRowBuilder().addComponents(cancelButton);
+      const row = new ActionRowBuilder().addComponents(closeButton);
 
       // Check if invite already exists for this user
       const existingInvite = await Invites.findOne({ ownerId: ownerId });
@@ -105,7 +104,7 @@ module.exports = {
 
         await interaction.reply({
           content:
-            "You have already created an invite. Please cancel your existing invite to create a new one.",
+            "You have already created an invite. Please close your existing invite to create a new one.",
           embeds: [existingEmbed],
           components: [row],
           ephemeral: true,
@@ -125,7 +124,7 @@ module.exports = {
         ],
         maxPlayers: maxPlayers,
       });
-      await newInvite.save();
+
       const embed = new EmbedBuilder()
         .setColor(`#${randomHexColor}`)
         .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
@@ -148,6 +147,9 @@ module.exports = {
       const message = await interaction.editReply({
         embeds: [embed],
       });
+      newInvite.messageId = message.id;
+      await newInvite.save();
+
       const messageFetch = await interaction.channel.messages.fetch(message.id);
       // console.log("Fetched message:", message);
       const joinEmoji = "✅"; // Replace with the emoji you want to use
@@ -172,6 +174,11 @@ module.exports = {
         // console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
 
         const invite = await Invites.findOne({ ownerId: ownerId });
+
+        // Check if the invite still exists
+        if (!invite) {
+          return;
+        }
 
         // Check if the maximum number of players has been reached
         if (invite.players.length >= maxPlayers) {
@@ -241,6 +248,11 @@ module.exports = {
         // console.log(`User ${user.tag} removed their reaction.`);
         // Fetch the invite from the database
         const invite = await Invites.findOne({ ownerId: ownerId });
+        
+        // Check if the invite still exists
+        if (!invite) {
+          return;
+        }
 
         // Check if the user is in the players list and remove them
         invite.players = invite.players.filter(
@@ -290,7 +302,7 @@ module.exports = {
           const expiredEmbed = new EmbedBuilder()
             .setColor(`#${randomHexColor}`)
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-            .setDescription("This team up invitation has expired!")
+            .setDescription("Team Up invite **EXPIRED!** ❌")
             .addFields([
               {
                 name: "👥 Max Players",
@@ -303,7 +315,17 @@ module.exports = {
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setTimestamp();
           await invite.deleteOne();
-          await message.edit({ embeds: [expiredEmbed], components: [] });
+          
+          try {
+            await message.reactions.removeAll();
+            await message.edit({ embeds: [expiredEmbed], components: [] });
+          } catch (error) {
+            if (error.code === 10008) {
+              return;
+            }
+            console.error("Error updating expired invite message:", error);
+          }
+
         }
       });
     } catch (error) {
