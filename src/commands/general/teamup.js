@@ -220,7 +220,7 @@ module.exports = {
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
             .setFooter({
-              text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+              text: "Team Up is currently full.",
             });
           await message.edit({ embeds: [fullEmbed] });
         } else {
