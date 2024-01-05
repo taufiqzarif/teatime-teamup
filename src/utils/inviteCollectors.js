@@ -44,7 +44,7 @@ async function reinitializeActiveInvite(client) {
             }
             await invite.deleteOne().then(() => deletedInvites++);
         }
-        console.log(chalk.bgMagentaBright(`Total invites deleted: ${deletedInvites}`));
+        console.log(chalk.bgMagentaBright(`Total expired invites deleted: ${deletedInvites}`));
     } catch (err) {
         console.log(err);
     }
