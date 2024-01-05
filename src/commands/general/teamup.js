@@ -9,7 +9,7 @@ const {
 const Invites = require("../../schema/invites");
 const { CLIENT_ID } = process.env;
 
-const TIME_LIMIT = 7_200_000; // 2 hours in milliseconds
+const TIME_LIMIT = 5000; // 2 hours in milliseconds
 
 module.exports = {
   data: new SlashCommandBuilder()
