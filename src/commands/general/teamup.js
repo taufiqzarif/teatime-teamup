@@ -9,7 +9,7 @@ const {
 const Invites = require("../../schema/invites");
 const { CLIENT_ID } = process.env;
 
-const TIME_LIMIT = 7_200_000; // 2 hours in milliseconds
+const TIME_LIMIT = 5000; // 2 hours in milliseconds
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -98,7 +98,7 @@ module.exports = {
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
           })
-          .setTimestamp(Date.parse(existingInvite.timestamp) + TIME_LIMIT);
+          .setTimestamp(Date.parse(existingInvite.createdTime) + TIME_LIMIT);
 
         await interaction.reply({
           content:
@@ -121,6 +121,7 @@ module.exports = {
           },
         ],
         maxPlayers: maxPlayers,
+        expiryTime: Date.now() + TIME_LIMIT,
       });
 
       const embed = new EmbedBuilder()
@@ -146,6 +147,7 @@ module.exports = {
         embeds: [embed],
       });
       newInvite.messageId = message.id;
+      newInvite.channelId = message.channelId;
       await newInvite.save();
 
       const messageFetch = await interaction.channel.messages.fetch(message.id);
@@ -218,7 +220,7 @@ module.exports = {
               { name: "🕹️ Current Team", value: updatedPlayers },
             ])
             .setThumbnail(gameThumbnailURL, { dynamic: true })
-            .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
+            .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
             .setFooter({
               text: "Team Up is currently full.",
             });
@@ -237,7 +239,7 @@ module.exports = {
               },
               { name: "🕹️ Current Team", value: updatedPlayers },
             ])
-            .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
+            .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setFooter({
               text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
@@ -284,7 +286,7 @@ module.exports = {
             },
             { name: "🕹️ Current Team", value: updatedPlayers },
           ])
-          .setTimestamp(Date.parse(updatedInvite.timestamp) + TIME_LIMIT)
+          .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",

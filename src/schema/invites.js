@@ -10,7 +10,9 @@ const invitesSchema = new Schema({
         }
     ],
     messageId: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now },
+    channelId: { type: String, required: true },
+    createdTime: { type: Date, default: Date.now },
+    expiryTime: { type: Date, required: true },
     maxPlayers: { type: Number, required: true },
 });
 

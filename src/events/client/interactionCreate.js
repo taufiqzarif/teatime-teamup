@@ -43,7 +43,7 @@ module.exports = {
         //         });
         //     }
         // } 
-        else if(interaction.isSelectMenu()) {
+        else if(interaction.isStringSelectMenu()) {
             const {selectMenus} = client;
             const {customId} = interaction;
             const selectMenu = selectMenus.get(customId);
