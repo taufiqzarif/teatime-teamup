@@ -3,6 +3,7 @@ const fs = require("fs");
 const { Client, Collection, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const { connect } = require("mongoose");
 const Invites = require("./src/schema/invites");
+const Users = require("./src/schema/users");
 
 const { TOKEN, DBTOKEN } = process.env;
 
@@ -29,7 +30,9 @@ for (const folder of functionPath) {
 }
 
 client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isButton()) return;
+  console.log('in')
+  console.log(interaction);
+  if (!interaction.isButton() && !interaction.isUserSelectMenu()) return;
 
   if (interaction.customId === "close_invite") {
     const ownerId = interaction.user.id;
@@ -86,6 +89,37 @@ client.on("interactionCreate", async (interaction) => {
       content: `${invite.game} invite closed.`,
       embeds: [],
       components: [],
+      ephemeral: true,
+    });
+  }
+
+  if (interaction.customId === "team_members") {
+    console.log('in 2')
+    const selectedTeamMembers = interaction.values;
+    await interaction.deferReply({ ephemeral: true });
+    const teamName = "Test";
+    const ownerId = interaction.user.id;
+
+    const user = await Users.findOne({ userId: ownerId });
+    if (!user) {
+      const newUser = new Users({
+        userId: ownerId,
+        teams: [{
+          teamName: teamName,
+          teamMembers: selectedTeamMembers.map((member) => ({
+            userId: member,
+          }))
+        }]
+      })
+      await newUser.save();
+    } else {
+      return await interaction.editReply({
+        content: "Already have a team.",
+        ephemeral: true,
+      });
+    }
+    await interaction.editReply({
+      content: `Team ${teamName} created with ${selectedTeamMembers}. 🎉`,
       ephemeral: true,
     });
   }
