@@ -306,7 +306,7 @@ module.exports = {
           const expiredEmbed = new EmbedBuilder()
             .setColor(`#${randomHexColor}`)
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-            .setDescription("**Team Up invite EXPIRED! ❌**")
+            .setDescription(`**Team Up invite EXPIRED! ❌**\n\n${embedData.description}`)
             .addFields([
               { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               {
