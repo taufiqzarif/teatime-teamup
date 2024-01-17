@@ -1,6 +1,6 @@
 require("dotenv").config();
 const fs = require("fs");
-const { Client, Collection, GatewayIntentBits } = require("discord.js");
+const { Client, Collection, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const { connect } = require("mongoose");
 const Invites = require("./src/schema/invites");
 
@@ -54,12 +54,36 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
+    // Edit embed message to show that the invite has been canceled
+    const channel = await client.channels?.fetch(invite.channelId);
+    const message = await channel.messages?.fetch(invite.messageId);
+    if (message) {
+      const embedData = message.embeds[0];
+      const embed = new EmbedBuilder(embedData);
+
+      if (embedData.description && !embedData.description.includes("CLOSED")) {
+        embed.setDescription(
+          `**Team Up invite CLOSED! ❌**\n\n${embedData.description}`
+        );
+      } else if (!embedData.description) {
+        embed.setDescription(`**Team Up invite CLOSED! ❌**`);
+      }
+
+      // Edit footer
+      embed.setFooter(
+        {text: `Invitation is no longer active.`}
+      );
+      embed.setTimestamp();
+      await message.reactions.removeAll();
+      await message.edit({ embeds: [embed] });
+    }
+
     // Delete the invite
     await Invites.deleteOne({ ownerId: ownerId });
 
     // Respond to the interaction
     await interaction.editReply({
-      content: "Your invite has been canceled.",
+      content: `${invite.game} invite closed.`,
       embeds: [],
       components: [],
       ephemeral: true,

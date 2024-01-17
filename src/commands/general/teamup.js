@@ -56,12 +56,19 @@ module.exports = {
 
       // Create custom url for embed thumbnail depends on selectedGame
       // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
-      const gameThumbnailURL = selectedGame.toLowerCase().includes("valo")
-        ? "https://cdn.discordapp.com/emojis/685247196979134495.webp?size=96&quality=lossless"
-        : selectedGame.toLowerCase().includes("lc") ||
-          selectedGame.toLowerCase().includes("lethal company")
-        ? "https://cdn.discordapp.com/emojis/1173369632082645072.webp?size=96&quality=lossless"
-        : null;
+      function getGameThumbnailURL(game) {
+        if (game.toLowerCase().includes("valo")) {
+          return "https://cdn.discordapp.com/emojis/685247196979134495.webp?size=96&quality=lossless";
+        } else if (
+          game.toLowerCase().includes("lc") ||
+          game.toLowerCase().includes("lethal company")
+        ) {
+          return "https://cdn.discordapp.com/emojis/1173369632082645072.webp?size=96&quality=lossless";
+        } else {
+          return null;
+        }
+      };
+
       const closeButton = new ButtonBuilder()
         .setCustomId("close_invite")
         .setLabel("Close Invite")
@@ -71,6 +78,8 @@ module.exports = {
 
       // Check if invite already exists for this user
       const existingInvite = await Invites.findOne({ ownerId: ownerId });
+      const gameThumbnailURL = existingInvite ? getGameThumbnailURL(existingInvite.game) : getGameThumbnailURL(selectedGame);
+
       if (existingInvite) {
         const existingEmbed = new EmbedBuilder()
           .setColor(`#${randomHexColor}`)
@@ -94,7 +103,7 @@ module.exports = {
                 .join("\n"),
             },
           ])
-          .setThumbnail(gameThumbnailURL, { dynamic: true })
+          .setThumbnail(gameThumbnailURL, { dynamic: true }) // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
           .setFooter({
             text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
           })
@@ -306,7 +315,9 @@ module.exports = {
           const expiredEmbed = new EmbedBuilder()
             .setColor(`#${randomHexColor}`)
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-            .setDescription(`**Team Up invite EXPIRED! ❌**\n\n${embedData.description}`)
+            .setDescription(
+              `**Team Up invite EXPIRED! ❌**\n\n${embedData.description}`
+            )
             .addFields([
               { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
               {
