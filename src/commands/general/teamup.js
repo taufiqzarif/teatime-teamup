@@ -327,6 +327,9 @@ module.exports = {
               },
               { name: "🕹️ Current Team", value: currentPlayers },
             ])
+            .setFooter({
+              text: "Invitation is no longer active.",
+            })
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setTimestamp();
           await invite.deleteOne();

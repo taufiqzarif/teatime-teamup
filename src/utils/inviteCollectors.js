@@ -40,6 +40,7 @@ async function reinitializeActiveInvite(client) {
                 } else if (!embedData.description) {
                     embed.setDescription(`**Team Up invite EXPIRED! ❌**`);
                 }
+                embed.setFooter({ text: 'Invitation is no longer active.' });
                 await message.edit({ embeds: [embed] });
             }
             await invite.deleteOne().then(() => deletedInvites++);
