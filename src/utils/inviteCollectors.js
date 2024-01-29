@@ -42,6 +42,8 @@ async function reinitializeActiveInvite(client) {
                 }
                 embed.setFooter({ text: 'Invitation is no longer active.' });
                 await message.edit({ embeds: [embed] });
+            } else {
+                await invite.deleteOne().then(() => deletedInvites++);
             }
             await invite.deleteOne().then(() => deletedInvites++);
         }
