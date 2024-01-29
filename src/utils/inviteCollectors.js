@@ -29,7 +29,7 @@ async function reinitializeActiveInvite(client) {
         });
         for (const invite of expiredInvites) {
             const channel = await client.channels.fetch(invite.channelId);
-            const message = await channel.messages.fetch(invite.messageId);
+            const message = await channel.messages.fetch(invite.messageId).catch(() => null);
 
             if (message) {
                 const embedData = message.embeds[0];
@@ -42,8 +42,6 @@ async function reinitializeActiveInvite(client) {
                 }
                 embed.setFooter({ text: 'Invitation is no longer active.' });
                 await message.edit({ embeds: [embed] });
-            } else {
-                await invite.deleteOne().then(() => deletedInvites++);
             }
             await invite.deleteOne().then(() => deletedInvites++);
         }
