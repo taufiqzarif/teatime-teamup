@@ -9,7 +9,7 @@ const {
 const Invites = require("../../schema/invites");
 const { CLIENT_ID } = process.env;
 
-const TIME_LIMIT = 7_200_000; // 2 hours in milliseconds
+const TIME_LIMIT = 5000; // 2 hours in milliseconds
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -309,6 +309,7 @@ module.exports = {
       collector.on("end", async () => {
         const invite = await Invites.findOne({ ownerId: ownerId });
         if (invite) {
+          const embedData = message.embeds[0];
           const currentPlayers = invite.players
             .map((player) => `<@${player.userId}>`)
             .join("\n");
@@ -316,7 +317,7 @@ module.exports = {
             .setColor(`#${randomHexColor}`)
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
             .setDescription(
-              `**Team Up invite EXPIRED! ❌**\n\n${embedData.description}`
+              `**Team Up invite EXPIRED! ❌**\n\n${embedData.description === null ? "" : embedData.description}`
             )
             .addFields([
               { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
