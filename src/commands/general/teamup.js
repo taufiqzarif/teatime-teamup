@@ -5,11 +5,16 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChannelType,
+  PermissionFlagsBits,
 } = require("discord.js");
 const Invites = require("../../schema/invites");
+const Users = require("../../schema/users");
 const { CLIENT_ID } = process.env;
 
 const TIME_LIMIT = 7_200_000; // 2 hours in milliseconds
+
+const protectedChannels = ["739872603170144386", "1159544686093021325", "695589856964902952"]
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,7 +43,47 @@ module.exports = {
         .setDescription("The description of your team up!")
         .setRequired(false)
         .setMaxLength(50)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("team")
+        .setDescription("The team you want to play with!")
+        .setAutocomplete(true)
+        .setRequired(false)
     ),
+
+  async autocomplete(interaction, client) {
+    try {
+      const ownerId = interaction.user.id;
+      const focusedOption = interaction.options.getFocused(true);
+
+      if (focusedOption.name === "team") {
+        const teamChoices = [];
+        const user = await Users.findOne({ userId: ownerId });
+        if (user) {
+          user.teams.forEach((team) => {
+            teamChoices.push({
+              name: team.teamName,
+              value: team.teamName,
+            });
+          });
+        }
+
+        await interaction.respond(
+          teamChoices.map((choice) => ({
+            name: choice.name,
+            value: choice.value,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      await interaction.reply({
+        content: "There was an error while executing this command!",
+        ephemeral: true,
+      });
+    }
+  },
 
   async execute(interaction, client) {
     try {
@@ -50,6 +95,25 @@ module.exports = {
         selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1);
       const maxPlayers = interaction.options.getNumber("maxplayers");
       const description = interaction.options.getString("description");
+      const selectedTeam = interaction.options.getString("team");
+      let targetChannel = interaction.channel;
+
+      let teamMembers = [];
+      let isTeamInviteOnly = false;
+ 
+      if (selectedTeam) {
+        const user = await Users.findOne({ userId: ownerId });
+        if (user) {
+          const team = user.teams.find(
+            (team) => team.teamName === selectedTeam
+          );
+          isTeamInviteOnly = true;
+          if (team) {
+            teamMembers = team.teamMembers.map((member) => member.userId);
+          }
+        }
+      }
+
       const randomHexColor = Math.floor(Math.random() * 16777215)
         .toString(16)
         .padStart(6, "0");
@@ -67,7 +131,7 @@ module.exports = {
         } else {
           return null;
         }
-      };
+      }
 
       const closeButton = new ButtonBuilder()
         .setCustomId("close_invite")
@@ -78,7 +142,9 @@ module.exports = {
 
       // Check if invite already exists for this user
       const existingInvite = await Invites.findOne({ ownerId: ownerId });
-      const gameThumbnailURL = existingInvite ? getGameThumbnailURL(existingInvite.game) : getGameThumbnailURL(selectedGame);
+      const gameThumbnailURL = existingInvite
+        ? getGameThumbnailURL(existingInvite.game)
+        : getGameThumbnailURL(selectedGame);
 
       if (existingInvite) {
         const existingEmbed = new EmbedBuilder()
@@ -118,7 +184,7 @@ module.exports = {
         });
         return;
       }
-      await interaction.deferReply();
+      await interaction.deferReply({ephemeral: true});
       // Create new invite document in database and include the owner as a player
       const newInvite = new Invites({
         ownerId: ownerId,
@@ -130,9 +196,70 @@ module.exports = {
           },
         ],
         maxPlayers: maxPlayers,
+        teamInvite: selectedTeam ? selectedTeam : null,
         expiryTime: Date.now() + TIME_LIMIT,
       });
 
+      // Create private channel for team invite
+      if (isTeamInviteOnly) {
+        const teamMembersMention = teamMembers.map((member) => `<@${member}>`);
+        const teamMembersString = teamMembersMention.join(" ");
+        // filter teamMembers that has admin
+        const filteredTeamMembers = [];
+
+        // Loop through each team member and fetch their details
+        for (const memberId of teamMembers) {
+          try {
+            // Await the fetch operation to complete
+            const memberObject = await interaction.guild.members.fetch(
+              memberId
+            );
+
+            // Check if the member does not have ADMINISTRATOR permissions
+            if (
+              !memberObject.permissions.has(PermissionFlagsBits.Administrator)
+            ) {
+              filteredTeamMembers.push(memberId); // Add to filtered list if no admin perms
+            }
+          } catch (error) {
+            console.error(`Error fetching member with ID ${memberId}:`, error);
+          }
+        }
+
+        let permissionOverwrites = [
+          {
+            id: interaction.guild.roles.everyone,
+            deny: [PermissionFlagsBits.ViewChannel], // Deny VIEW_CHANNEL for everyone by default
+          },
+          {
+            id: ownerId,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ], // Allow the owner to view and send messages
+          },
+        ];
+        teamMembers.forEach((member) => {
+          permissionOverwrites.push({
+            id: member,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ],
+          });
+        });
+        const teamInviteChannel = await interaction.guild.channels.create({
+          name: `${selectedGame.toLowerCase()}-${selectedTeam.toLowerCase()}`,
+          type: ChannelType.GuildText,
+          permissionOverwrites: permissionOverwrites,
+        });
+        teamInviteChannel.permissionOverwrites.push;
+        await teamInviteChannel.send({
+          content: `${teamMembersString}`,
+        });
+        targetChannel = teamInviteChannel;
+      }
+      
       const embed = new EmbedBuilder()
         .setColor(`#${randomHexColor}`)
         .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
@@ -152,15 +279,14 @@ module.exports = {
         })
         .setTimestamp(Date.now() + TIME_LIMIT);
 
-      const message = await interaction.editReply({
+      const message = await targetChannel.send({
         embeds: [embed],
       });
       newInvite.messageId = message.id;
-      newInvite.channelId = message.channelId;
+      newInvite.channelId = targetChannel.id;
       await newInvite.save();
 
-      const messageFetch = await interaction.channel.messages.fetch(message.id);
-      // console.log("Fetched message:", message);
+      const messageFetch = await targetChannel.messages.fetch(message.id);
       const joinEmoji = "✅"; // Replace with the emoji you want to use
       await messageFetch.react(joinEmoji);
 
@@ -177,6 +303,11 @@ module.exports = {
         filter: filterUser,
         time: TIME_LIMIT,
         dispose: true,
+      });
+
+      await interaction.editReply({
+        content: `Team Up invite created! 🎉`,
+        ephemeral: true,
       });
 
       collector.on("collect", async (reaction, user) => {
@@ -317,7 +448,9 @@ module.exports = {
             .setColor(`#${randomHexColor}`)
             .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
             .setDescription(
-              `**Team Up invite EXPIRED! ❌**\n\n${embedData.description === null ? "" : embedData.description}`
+              `**Team Up invite EXPIRED! ❌**\n\n${
+                embedData.description === null ? "" : embedData.description
+              }`
             )
             .addFields([
               { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
@@ -338,6 +471,11 @@ module.exports = {
           try {
             await message.reactions.removeAll();
             await message.edit({ embeds: [expiredEmbed], components: [] });
+
+            // Delete private channel
+            if (isTeamInviteOnly && !protectedChannels.includes(targetChannel.id)) {
+              await targetChannel.delete();
+            }
           } catch (error) {
             if (error.code === 10008) {
               return;

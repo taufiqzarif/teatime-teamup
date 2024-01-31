@@ -3,12 +3,16 @@ const fs = require("fs");
 const { Client, Collection, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const { connect } = require("mongoose");
 const Invites = require("./src/schema/invites");
+const Users = require("./src/schema/users");
+const TeamIdCounter = require("./src/schema/teamIdCounter");
+const TemporaryTeamName = require("./src/schema/tempTeamName");
 
 const { TOKEN, DBTOKEN } = process.env;
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions,
@@ -29,7 +33,7 @@ for (const folder of functionPath) {
 }
 
 client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isButton()) return;
+  if (!interaction.isButton() && !interaction.isUserSelectMenu()) return;
 
   if (interaction.customId === "close_invite") {
     const ownerId = interaction.user.id;
@@ -89,7 +93,77 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: true,
     });
   }
+
+  if (interaction.customId === "team_members") {
+    console.log('in 2')
+    await interaction.deferReply({ ephemeral: true });
+    const teamId = await getNextTeamId();
+    const ownerId = interaction.user.id;
+    const selectedTeamMembers = interaction.values.filter(member => member !== ownerId);
+
+    const tempTeamName = await TemporaryTeamName.findOne({ ownerId });
+    if (!tempTeamName) {
+      return await interaction.editReply({
+        content: "No temporary team name found.",
+        ephemeral: true,
+      });
+    }
+    const teamName = tempTeamName.teamName;
+
+    const user = await Users.findOne({ userId: ownerId });
+    if (!user) {
+      const newUser = new Users({
+        userId: ownerId,
+        teams: [{
+          teamId,
+          teamName: teamName,
+          teamMembers: selectedTeamMembers.map((member) => ({
+            userId: member,
+          }))
+        }]
+      })
+      const res = await newUser.save();
+      if (!res) {
+        return await interaction.editReply({
+          content: "Failed to create team.",
+          ephemeral: true,
+        });
+      } else {
+        await tempTeamName.deleteOne();
+      }
+    } else {
+      // add team to user
+      const res = await Users.updateOne({ userId: ownerId }, {
+        $push: {
+          teams: {
+            teamId,
+            teamName: teamName,
+            teamMembers: selectedTeamMembers.map((member) => ({
+              userId: member,
+            }))
+          }
+        }
+      });
+      if (!res) {
+        return await interaction.editReply({
+          content: "Failed to create team.",
+          ephemeral: true,
+        });
+      } else {
+        await tempTeamName.deleteOne();
+      }
+    }
+    await interaction.editReply({
+      content: `Team ${teamName} created with ${selectedTeamMembers}. 🎉`,
+      ephemeral: true,
+    });
+  }
 });
+
+async function getNextTeamId() {
+  const counter = await TeamIdCounter.findOneAndUpdate({}, { $inc: { counter: 1 } }, { new: true, upsert: true });
+  return counter.counter;
+}
 
 (async () => {
   require("./src/functions/handlers/eventHandler")(client);

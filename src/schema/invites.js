@@ -13,6 +13,7 @@ const invitesSchema = new Schema({
     channelId: { type: String, required: true },
     createdTime: { type: Date, default: Date.now },
     expiryTime: { type: Date, required: true },
+    teamInvite: { type: String, required: false},
     maxPlayers: { type: Number, required: true },
 });
 
