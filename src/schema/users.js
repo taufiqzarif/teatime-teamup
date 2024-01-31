@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const { Schema, model } = mongoose;
-const AutoIncrement = require("mongoose-sequence")(mongoose);
 
 const usersSchema = new Schema({
   userId: { type: String, required: true },
@@ -17,12 +16,6 @@ const usersSchema = new Schema({
       _id: false,
     },
   ],
-});
-
-// Auto increment teamId
-usersSchema.plugin(AutoIncrement, {
-  id: "user_registration_seq",
-  inc_field: "teams.teamId",
 });
 
 module.exports = model("Users", usersSchema, "users");

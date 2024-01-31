@@ -4,6 +4,8 @@ const { Client, Collection, GatewayIntentBits, EmbedBuilder } = require("discord
 const { connect } = require("mongoose");
 const Invites = require("./src/schema/invites");
 const Users = require("./src/schema/users");
+const TeamIdCounter = require("./src/schema/teamIdCounter");
+const TemporaryTeamName = require("./src/schema/tempTeamName");
 
 const { TOKEN, DBTOKEN } = process.env;
 
@@ -31,7 +33,6 @@ for (const folder of functionPath) {
 
 client.on("interactionCreate", async (interaction) => {
   console.log('in')
-  console.log(interaction);
   if (!interaction.isButton() && !interaction.isUserSelectMenu()) return;
 
   if (interaction.customId === "close_invite") {
@@ -95,26 +96,44 @@ client.on("interactionCreate", async (interaction) => {
 
   if (interaction.customId === "team_members") {
     console.log('in 2')
-    const selectedTeamMembers = interaction.values;
     await interaction.deferReply({ ephemeral: true });
-    const teamName = "Test";
+    const teamId = await getNextTeamId();
     const ownerId = interaction.user.id;
+    const selectedTeamMembers = interaction.values.filter(member => member !== ownerId);
+
+    const tempTeamName = await TemporaryTeamName.findOne({ ownerId });
+    if (!tempTeamName) {
+      return await interaction.editReply({
+        content: "No temporary team name found.",
+        ephemeral: true,
+      });
+    }
+    const teamName = tempTeamName.teamName;
 
     const user = await Users.findOne({ userId: ownerId });
     if (!user) {
       const newUser = new Users({
         userId: ownerId,
         teams: [{
+          teamId,
           teamName: teamName,
           teamMembers: selectedTeamMembers.map((member) => ({
             userId: member,
           }))
         }]
       })
-      await newUser.save();
+      const res = await newUser.save();
+      if (!res) {
+        return await interaction.editReply({
+          content: "Failed to create team.",
+          ephemeral: true,
+        });
+      } else {
+        await tempTeamName.deleteOne();
+      }
     } else {
       return await interaction.editReply({
-        content: "Already have a team.",
+        content: "Already have 3 teams (MAX)!",
         ephemeral: true,
       });
     }
@@ -124,6 +143,11 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 });
+
+async function getNextTeamId() {
+  const counter = await TeamIdCounter.findOneAndUpdate({}, { $inc: { counter: 1 } }, { new: true, upsert: true });
+  return counter.counter;
+}
 
 (async () => {
   require("./src/functions/handlers/eventHandler")(client);

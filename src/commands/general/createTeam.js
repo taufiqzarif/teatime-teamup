@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, UserSelectMenuBuilder, ActionRowBuilder } = require("discord.js");
 const Users = require("../../schema/users");
+const TemporaryTeamName = require("../../schema/tempTeamName");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,6 +16,24 @@ module.exports = {
         await interaction.deferReply({ ephemeral: true });
         const ownerId = interaction.user.id;
         const teamName = interaction.options.getString("teamname");
+
+        const user = await Users.findOne({ userId: ownerId });
+        if (user) {
+            if (user.teams.length > 3) {
+                await interaction.editReply({
+                    content: "Already have 3 teams (MAX)!",
+                    ephemeral: true,
+                });
+                return;
+            }
+        }
+
+        await TemporaryTeamName.findOneAndUpdate(
+            { ownerId },
+            { ownerId, teamName },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
+        
 
         const selectMenu = new UserSelectMenuBuilder()
             .setCustomId("team_members")
