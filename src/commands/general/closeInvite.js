@@ -64,6 +64,7 @@ module.exports = {
       }
 
       // Respond to the interaction
+      //? fix cause of error, unknown message sometimes
       await interaction.editReply({
         content: `${invite.game} invite closed.`,
         ephemeral: true,
