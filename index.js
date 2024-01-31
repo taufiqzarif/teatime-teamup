@@ -12,6 +12,7 @@ const { TOKEN, DBTOKEN } = process.env;
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions,
@@ -32,7 +33,6 @@ for (const folder of functionPath) {
 }
 
 client.on("interactionCreate", async (interaction) => {
-  console.log('in')
   if (!interaction.isButton() && !interaction.isUserSelectMenu()) return;
 
   if (interaction.customId === "close_invite") {
@@ -132,10 +132,26 @@ client.on("interactionCreate", async (interaction) => {
         await tempTeamName.deleteOne();
       }
     } else {
-      return await interaction.editReply({
-        content: "Already have 3 teams (MAX)!",
-        ephemeral: true,
+      // add team to user
+      const res = await Users.updateOne({ userId: ownerId }, {
+        $push: {
+          teams: {
+            teamId,
+            teamName: teamName,
+            teamMembers: selectedTeamMembers.map((member) => ({
+              userId: member,
+            }))
+          }
+        }
       });
+      if (!res) {
+        return await interaction.editReply({
+          content: "Failed to create team.",
+          ephemeral: true,
+        });
+      } else {
+        await tempTeamName.deleteOne();
+      }
     }
     await interaction.editReply({
       content: `Team ${teamName} created with ${selectedTeamMembers}. 🎉`,

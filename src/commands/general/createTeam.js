@@ -10,6 +10,8 @@ module.exports = {
             option
                 .setName("teamname")
                 .setDescription("Enter your team name.")
+                .min_length(3)
+                .max_length(20)
                 .setRequired(true)    
         ),
     async execute(interaction, client) {
@@ -18,15 +20,24 @@ module.exports = {
         const teamName = interaction.options.getString("teamname");
 
         const user = await Users.findOne({ userId: ownerId });
-        if (user) {
-            if (user.teams.length > 3) {
-                await interaction.editReply({
-                    content: "Already have 3 teams (MAX)!",
-                    ephemeral: true,
-                });
-                return;
-            }
+        if (user && user.teams.length > 2) {
+            await interaction.editReply({
+                content: "Already have 3 teams (MAX)!",
+                ephemeral: true,
+            });
+            return;
         }
+
+        // Check if there's an existing team name
+        const existingTeamName = await Users.findOne({ "teams.teamName": teamName });
+        if (existingTeamName) {
+            await interaction.editReply({
+                content: `Team name **${teamName}** already exists.`,
+                ephemeral: true,
+            });
+            return;
+        }
+        
 
         await TemporaryTeamName.findOneAndUpdate(
             { ownerId },
@@ -49,43 +60,5 @@ module.exports = {
             components: [row],
             ephemeral: true,
         });
-        // // Check if document user exists
-        // const user = await Users.findOne({ userId: ownerId });
-        // if (!user) {
-        //     // Create a new document
-        //     const newUser = new Users({
-        //         userId: ownerId,
-        //         teams: [
-        //             {
-        //                 teamName: teamName,
-        //                 teamMembers: [
-        //                     {
-        //                         userId: teamMembers,
-        //                     },
-        //                 ],
-        //             },
-        //         ],
-        //     });
-        //     await newUser.save();
-        //     await interaction.editReply({
-        //         content: `Team ${teamName} created with ${teamMembers}. 🎉`,
-        //         ephemeral: true,
-        //     });
-        //     return;
-        // }
-
-        // // Check if member already in the team
-        // if (user.teams.teamMembers.userId === teamMembers) {
-        //     await interaction.editReply({
-        //         content: "Member already in the team.",
-        //         ephemeral: true,
-        //     });
-        //     return;
-        // }
-
-        // await interaction.editReply({
-        //     content: `Already have a team.`,
-        //     ephemeral: true,
-        // })
     }
 }
