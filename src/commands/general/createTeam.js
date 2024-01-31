@@ -10,8 +10,8 @@ module.exports = {
             option
                 .setName("teamname")
                 .setDescription("Enter your team name.")
-                .min_length(3)
-                .max_length(20)
+                .setMinLength(3)
+                .setMaxLength(20)
                 .setRequired(true)    
         ),
     async execute(interaction, client) {
