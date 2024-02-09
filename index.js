@@ -100,6 +100,7 @@ client.on("interactionCreate", async (interaction) => {
     const teamId = await getNextTeamId();
     const ownerId = interaction.user.id;
     const selectedTeamMembers = interaction.values.filter(member => member !== ownerId);
+    const selectedTeamMembersUsernames = selectedTeamMembers.map(member => `<@${member}>`);
 
     const tempTeamName = await TemporaryTeamName.findOne({ ownerId });
     if (!tempTeamName) {
@@ -154,7 +155,7 @@ client.on("interactionCreate", async (interaction) => {
       }
     }
     await interaction.editReply({
-      content: `Team ${teamName} created with ${selectedTeamMembers}. 🎉`,
+      content: `Team ${teamName} created with ${selectedTeamMembersUsernames}. 🎉`,
       ephemeral: true,
     });
   }
