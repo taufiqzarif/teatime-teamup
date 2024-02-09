@@ -10,7 +10,7 @@ module.exports = {
     const options = [
       {
         type: ActivityType.Playing,
-        text: "/teamup",
+        text: "/teamup | /createteam",
       },
     ];
 
