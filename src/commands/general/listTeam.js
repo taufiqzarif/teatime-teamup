@@ -59,7 +59,7 @@ module.exports = {
     const user = await Users.findOne({ userId: ownerId });
     if (!user) {
       await interaction.editReply({
-        content: "You don't have any teams.",
+        content: "You don't have any teams. To create a team, use `/createteam`.",
         ephemeral: true,
       });
       return;
