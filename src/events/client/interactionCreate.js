@@ -43,24 +43,26 @@ module.exports = {
         //         });
         //     }
         // } 
-        else if(interaction.isStringSelectMenu()) {
-            const {selectMenus} = client;
-            const {customId} = interaction;
-            const selectMenu = selectMenus.get(customId);
-            if(!selectMenu) return new Error(`No select menu matching ${customId} was found!`);
+        // else if(interaction.isStringSelectMenu()) {
+        //     console.log(client);
+        //     const {selectMenus} = client;
+        //     const {customId} = interaction;
+        //     const selectMenu = selectMenus.get(customId);
+        //     if(!selectMenu) return new Error(`No select menu matching ${customId} was found!`);
 
-            try {
-                await selectMenu.execute(interaction, client);
-            }
-            catch(error) {
-                console.error(`Error executing ${customId}!`);
-                console.error(error);
-                await interaction.reply({
-                    content: `Error executing ${customId}`,
-                    ephemeral: true
-                });
-            }
-        } else if(interaction.isContextMenuCommand()) {
+        //     try {
+        //         await selectMenu.execute(interaction, client);
+        //     }
+        //     catch(error) {
+        //         console.error(`Error executing ${customId}!`);
+        //         console.error(error);
+        //         await interaction.reply({
+        //             content: `Error executing ${customId}`,
+        //             ephemeral: true
+        //         });
+        //     }
+        // } 
+        else if(interaction.isContextMenuCommand()) {
             const {contextMenus} = client;
             const {commandName} = interaction;
             const contextMenu = contextMenus.get(commandName);
