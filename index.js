@@ -128,13 +128,16 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       if (hasDuplicates && alreadyInTeam.length > 0) {
-        
         await interaction.editReply({
           content: `${alreadyInTeamUsernames} already in team **${currentSelectedTeam}**.`,
           ephemeral: true,
         });
         return;
-      } else if (hasDuplicates && selectedTeamMembers.length > 0 && alreadyInTeam.length > 0) {
+      } else if (
+        hasDuplicates &&
+        selectedTeamMembers.length > 0 &&
+        alreadyInTeam.length > 0
+      ) {
         await interaction.editReply({
           content: `Added ${selectedTeamMembersUsernames} to team **${currentSelectedTeam}**. 🎉\n${alreadyInTeamUsernames} already in team **${currentSelectedTeam}**.`,
           ephemeral: true,
@@ -147,10 +150,76 @@ client.on("interactionCreate", async (interaction) => {
         });
         return;
       }
-        
 
       await interaction.editReply({
         content: `Added ${selectedTeamMembersUsernames} to team **${currentSelectedTeam}**. 🎉`,
+        ephemeral: true,
+      });
+    } else if (customId === "remove_members") {
+      await interaction.deferReply({ ephemeral: true });
+      let selectedTeamMembers = interaction.values;
+      const ownerId = interaction.user.id;
+      // filter owner from selected members
+      selectedTeamMembers = selectedTeamMembers.filter(
+        (member) => member !== ownerId
+      );
+
+      const user = await Users.findOne({ userId: ownerId });
+      if (!user) {
+        return await interaction.editReply({
+          content:
+            "You don't have any teams. To create a team, use `/createteam`.",
+          ephemeral: true,
+        });
+      }
+      const team = user.teams.find(
+        (team) => team.teamName === currentSelectedTeam
+      );
+      if (!team) {
+        return await interaction.editReply({
+          content: `Team **${currentSelectedTeam}** doesn't exist.`,
+          ephemeral: true,
+        });
+      }
+
+      const members = team.teamMembers;
+
+      // filter members that are not in the team
+      selectedTeamMembers = selectedTeamMembers.filter((member) =>
+        members.some((m) => m.userId === member)
+      );
+
+      const res = await Users.updateOne(
+        { userId: ownerId, "teams.teamName": currentSelectedTeam },
+        {
+          $pull: {
+            "teams.$.teamMembers": {
+              userId: { $in: selectedTeamMembers },
+            },
+          },
+        }
+      );
+
+      if (!res) {
+        return await interaction.editReply({
+          content: "Failed to remove members.",
+          ephemeral: true,
+        });
+      }
+
+      const selectedTeamMembersUsernames = selectedTeamMembers.map(
+        (member) => `<@${member}>`
+      );
+
+      if (selectedTeamMembers.length === 0) {
+        return await interaction.editReply({
+          content: `No members removed from team **${currentSelectedTeam}**.`,
+          ephemeral: true,
+        });
+      }
+
+      await interaction.editReply({
+        content: `Removed ${selectedTeamMembersUsernames} from team **${currentSelectedTeam}**.`,
         ephemeral: true,
       });
     }
@@ -331,6 +400,47 @@ client.on("interactionCreate", async (interaction) => {
 
       await interaction.editReply({
         content: "Select team members",
+        components: [actionRow.toJSON()],
+        ephemeral: true,
+      });
+    } else if (interaction.customId === "remove_team_members") {
+      await interaction.deferReply({ ephemeral: true });
+      const ownerId = interaction.user.id;
+
+      const user = await Users.findOne({ userId: ownerId });
+      if (!user) {
+        return await interaction.editReply({
+          content:
+            "You don't have any teams. To create a team, use `/createteam`.",
+          ephemeral: true,
+        });
+      }
+
+      currentSelectedTeam = interaction.values[0];
+
+      const team = user.teams.find(
+        (team) => team.teamName === currentSelectedTeam
+      );
+
+      if (!team) {
+        return await interaction.editReply({
+          content: `Team **${currentSelectedTeam}** doesn't exist.`,
+          ephemeral: true,
+        });
+      }
+
+      const members = team.teamMembers;
+
+      const actionRow = new ActionRowBuilder().setComponents(
+        new UserSelectMenuBuilder()
+          .setCustomId(`remove_members:${currentSelectedTeam}`)
+          .setPlaceholder(`Select team members:${currentSelectedTeam}`)
+          .setMinValues(1)
+          .setMaxValues(10)
+      );
+
+      await interaction.editReply({
+        content: "Select team members to remove",
         components: [actionRow.toJSON()],
         ephemeral: true,
       });
