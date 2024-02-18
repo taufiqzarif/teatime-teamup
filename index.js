@@ -404,7 +404,7 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true,
       });
     } else if (interaction.customId === "remove_team_members") {
-      await interaction.deferReply({ ephemeral: true });
+      // await interaction.deferReply({ ephemeral: true });
       const ownerId = interaction.user.id;
 
       const user = await Users.findOne({ userId: ownerId });
@@ -428,6 +428,13 @@ client.on("interactionCreate", async (interaction) => {
           ephemeral: true,
         });
       }
+      // list team members in the team
+      await interaction.reply({
+        content: `Team **${currentSelectedTeam}** members: ${team.teamMembers
+          .map((member) => `<@${member.userId}>`)
+          .join(", ")}`,
+        ephemeral: true,
+      })
 
       const members = team.teamMembers;
 
@@ -439,7 +446,7 @@ client.on("interactionCreate", async (interaction) => {
           .setMaxValues(10)
       );
 
-      await interaction.editReply({
+      await interaction.followUp({
         content: "Select team members to remove",
         components: [actionRow.toJSON()],
         ephemeral: true,
