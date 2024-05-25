@@ -12,9 +12,18 @@ const Invites = require("../../schema/invites");
 const Users = require("../../schema/users");
 const { CLIENT_ID } = process.env;
 
-const TIME_LIMIT = 86_400_000; // 2 hours in milliseconds
+// 4 hours in milliseconds(just for testing purposes)
+const TIME_LIMIT = 4 * 60 * 60 * 1000;
 
-const protectedChannels = ["739872603170144386", "1159544686093021325", "695589856964902952"]
+const msToHours = TIME_LIMIT / 1000 / 60 / 60;
+
+const hourOrhours = msToHours > 1 ? "hours" : "hour";
+
+const protectedChannels = [
+  "739872603170144386",
+  "1159544686093021325",
+  "695589856964902952",
+];
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -101,7 +110,7 @@ module.exports = {
 
       let teamMembers = [];
       let isTeamInviteOnly = false;
- 
+
       if (selectedTeam) {
         const user = await Users.findOne({ userId: ownerId });
         if (user) {
@@ -172,7 +181,7 @@ module.exports = {
           ])
           .setThumbnail(gameThumbnailURL, { dynamic: true }) // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+            text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
           })
           .setTimestamp(Date.parse(existingInvite.createdTime) + TIME_LIMIT);
 
@@ -185,7 +194,7 @@ module.exports = {
         });
         return;
       }
-      await interaction.deferReply({ephemeral: true});
+      await interaction.deferReply({ ephemeral: true });
       // Create new invite document in database and include the owner as a player
       const newInvite = new Invites({
         ownerId: ownerId,
@@ -260,7 +269,7 @@ module.exports = {
         });
         targetChannel = teamInviteChannel;
       }
-      
+
       const embed = new EmbedBuilder()
         .setColor(`#${randomHexColor}`)
         .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
@@ -276,7 +285,7 @@ module.exports = {
         ])
         .setThumbnail(gameThumbnailURL, { dynamic: true })
         .setFooter({
-          text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+          text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
         })
         .setTimestamp(Date.now() + TIME_LIMIT);
 
@@ -383,7 +392,7 @@ module.exports = {
             .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setFooter({
-              text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+              text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
             });
           await message.edit({ embeds: [updatedEmbed] });
         }
@@ -430,7 +439,7 @@ module.exports = {
           .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+            text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
           });
 
         // Edit the original message with the updated embed
@@ -474,7 +483,10 @@ module.exports = {
             await message.edit({ embeds: [expiredEmbed], components: [] });
 
             // Delete private channel
-            if (isTeamInviteOnly && !protectedChannels.includes(targetChannel.id)) {
+            if (
+              isTeamInviteOnly &&
+              !protectedChannels.includes(targetChannel.id)
+            ) {
               await targetChannel.delete();
             }
           } catch (error) {
