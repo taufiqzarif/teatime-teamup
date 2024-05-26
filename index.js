@@ -1,18 +1,18 @@
-require("dotenv").config();
-const fs = require("fs");
-const {
+import "dotenv/config";
+import fs from "fs";
+import {
   Client,
   Collection,
   GatewayIntentBits,
   EmbedBuilder,
   ActionRowBuilder,
   UserSelectMenuBuilder,
-} = require("discord.js");
-const { connect } = require("mongoose");
-const Invites = require("./src/schema/invites");
-const Users = require("./src/schema/users");
-const TeamIdCounter = require("./src/schema/teamIdCounter");
-const TemporaryTeamName = require("./src/schema/tempTeamName");
+} from "discord.js";
+import { connect } from "mongoose";
+import Invites from "./src/schema/invites.js";
+import Users from "./src/schema/users.js";
+import TeamIdCounter from "./src/schema/teamIdCounter.js";
+import TemporaryTeamName from "./src/schema/tempTeamName.js";
 
 const { TOKEN, DBTOKEN } = process.env;
 
@@ -434,7 +434,7 @@ client.on("interactionCreate", async (interaction) => {
           .map((member) => `<@${member.userId}>`)
           .join(", ")}`,
         ephemeral: true,
-      })
+      });
 
       const members = team.teamMembers;
 

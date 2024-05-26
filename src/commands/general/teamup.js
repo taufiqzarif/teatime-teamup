@@ -1,5 +1,5 @@
-require("dotenv").config();
-const {
+import "dotenv/config";
+import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
@@ -7,16 +7,21 @@ const {
   ButtonStyle,
   ChannelType,
   PermissionFlagsBits,
-} = require("discord.js");
-const Invites = require("../../schema/invites");
-const Users = require("../../schema/users");
+} from "discord.js";
+import Invites from "../../schema/invites.js";
+import Users from "../../schema/users.js";
+
 const { CLIENT_ID } = process.env;
 
 const TIME_LIMIT = 7_200_000; // 2 hours in milliseconds
 
-const protectedChannels = ["739872603170144386", "1159544686093021325", "695589856964902952"]
+const protectedChannels = [
+  "739872603170144386",
+  "1159544686093021325",
+  "695589856964902952",
+];
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("teamup")
     .setDescription("Create a game team up invitation!")
@@ -100,7 +105,7 @@ module.exports = {
 
       let teamMembers = [];
       let isTeamInviteOnly = false;
- 
+
       if (selectedTeam) {
         const user = await Users.findOne({ userId: ownerId });
         if (user) {
@@ -184,7 +189,7 @@ module.exports = {
         });
         return;
       }
-      await interaction.deferReply({ephemeral: true});
+      await interaction.deferReply({ ephemeral: true });
       // Create new invite document in database and include the owner as a player
       const newInvite = new Invites({
         ownerId: ownerId,
@@ -259,7 +264,7 @@ module.exports = {
         });
         targetChannel = teamInviteChannel;
       }
-      
+
       const embed = new EmbedBuilder()
         .setColor(`#${randomHexColor}`)
         .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
@@ -473,7 +478,10 @@ module.exports = {
             await message.edit({ embeds: [expiredEmbed], components: [] });
 
             // Delete private channel
-            if (isTeamInviteOnly && !protectedChannels.includes(targetChannel.id)) {
+            if (
+              isTeamInviteOnly &&
+              !protectedChannels.includes(targetChannel.id)
+            ) {
               await targetChannel.delete();
             }
           } catch (error) {

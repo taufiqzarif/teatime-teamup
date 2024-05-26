@@ -1,10 +1,14 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const temporaryTeamNameSchema = new Schema({
   ownerId: { type: String, required: true, unique: true },
   teamName: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now, expires: '24h' }
+  createdAt: { type: Date, default: Date.now, expires: "24h" },
 });
 
-module.exports = mongoose.model('TemporaryTeamName', temporaryTeamNameSchema, 'temporaryTeamName');
+export default mongoose.model(
+  "TemporaryTeamName",
+  temporaryTeamNameSchema,
+  "temporaryTeamName"
+);

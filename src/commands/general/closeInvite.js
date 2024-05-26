@@ -1,8 +1,13 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const Invites = require("../../schema/invites");
-const protectedChannels = ["739872603170144386", "1159544686093021325", "695589856964902952"]
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import Invites from "../../schema/invites.js";
 
-module.exports = {
+const protectedChannels = [
+  "739872603170144386",
+  "1159544686093021325",
+  "695589856964902952",
+];
+
+export default {
   data: new SlashCommandBuilder()
     .setName("closeinvite")
     .setDescription("Close your active Team Up invite."),

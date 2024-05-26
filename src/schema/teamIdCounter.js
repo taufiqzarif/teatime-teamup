@@ -1,8 +1,9 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
+
 const { Schema, model } = mongoose;
 
 const teamIdCounterSchema = new Schema({
-  counter: { type: Number, default: 0 }
+  counter: { type: Number, default: 0 },
 });
 
-module.exports = model("TeamIdCounter", teamIdCounterSchema, "teamIdCounter");
+export default model("TeamIdCounter", teamIdCounterSchema, "teamIdCounter");
