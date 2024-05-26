@@ -1,28 +1,30 @@
-import "dotenv/config";
-import { REST, Routes } from "discord.js";
-import fs from "fs";
+import 'dotenv/config';
+import { REST, Routes } from 'discord.js';
+import fs from 'fs';
 
 const { TOKEN, CLIENT_ID } = process.env;
 
 export default async (client) => {
   client.commandHandler = async () => {
-    const commandPath = fs.readdirSync("./src/commands");
+    const commandPath = fs.readdirSync('./src/commands');
     for (const folder of commandPath) {
       const commandFiles = fs
         .readdirSync(`./src/commands/${folder}`)
-        .filter((file) => file.endsWith(".js"));
+        .filter((file) => file.endsWith('.js'));
 
       const { commands, commandArray } = client;
 
       for (const file of commandFiles) {
-        const command = require(`../../commands/${folder}/${file}`);
+        // Use dynamic import instead of require
+        const command = (await import(`../../commands/${folder}/${file}`)).default;
+
         commands.set(command.data.name, command);
         commandArray.push(command.data.toJSON());
         // console.log(`Command ${command.data.name} added.`);
       }
     }
 
-    const rest = new REST({ version: "10" }).setToken(TOKEN);
+    const rest = new REST({ version: '10' }).setToken(TOKEN);
 
     try {
       console.log(
