@@ -25,7 +25,12 @@ export default {
     const teamName = interaction.options.getString("teamname");
 
     const user = await Users.findOne({ userId: ownerId });
-    if (user && user.teams.length > 2) {
+
+    if (
+      user &&
+      !user.userId === "834638969945587712" &&
+      user.teams.length > 2
+    ) {
       await interaction.editReply({
         content: "Already have 3 teams (MAX)!",
         ephemeral: true,

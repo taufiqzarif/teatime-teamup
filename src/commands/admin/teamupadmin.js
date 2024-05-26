@@ -13,7 +13,12 @@ import Users from "../../schema/users.js";
 
 const { CLIENT_ID } = process.env;
 
-const TIME_LIMIT = 86_400_000; // 2 hours in milliseconds
+// 4 hours in milliseconds(just for testing purposes)
+const TIME_LIMIT = 4 * 60 * 60 * 1000;
+
+const msToHours = TIME_LIMIT / 1000 / 60 / 60;
+
+const hourOrhours = msToHours > 1 ? "hours" : "hour";
 
 const protectedChannels = [
   "739872603170144386",
@@ -177,7 +182,7 @@ export default {
           ])
           .setThumbnail(gameThumbnailURL, { dynamic: true }) // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+            text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
           })
           .setTimestamp(Date.parse(existingInvite.createdTime) + TIME_LIMIT);
 
@@ -281,7 +286,7 @@ export default {
         ])
         .setThumbnail(gameThumbnailURL, { dynamic: true })
         .setFooter({
-          text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+          text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
         })
         .setTimestamp(Date.now() + TIME_LIMIT);
 
@@ -388,7 +393,7 @@ export default {
             .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setFooter({
-              text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+              text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
             });
           await message.edit({ embeds: [updatedEmbed] });
         }
@@ -435,7 +440,7 @@ export default {
           .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+            text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
           });
 
         // Edit the original message with the updated embed
