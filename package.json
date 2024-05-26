@@ -3,16 +3,25 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Taufiq Zarif",
+  "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",
     "discord.js": "^14.15.2",
-    "dotenv": "^16.4.5",
     "mongoose": "^8.4.0"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^1.0.1",
+    "@eslint/js": "^9.3.0",
+    "dotenv": "^16.4.5",
+    "eslint": "^9.3.0",
+    "eslint-plugin-react": "^7.34.1",
+    "globals": "^15.3.0",
+    "prettier": "^3.2.5"
   }
 }

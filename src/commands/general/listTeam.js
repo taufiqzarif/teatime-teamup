@@ -1,13 +1,8 @@
-const {
-  SlashCommandBuilder,
-  EmbedBuilder,
-  UserSelectMenuBuilder,
-  ActionRowBuilder,
-} = require("discord.js");
-const Users = require("../../schema/users");
-const TemporaryTeamName = require("../../schema/tempTeamName");
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import Users from "../../schema/users.js";
+import TemporaryTeamName from "../../schema/tempTeamName.js";
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("listteam")
     .setDescription("Users in your team.")
@@ -59,7 +54,8 @@ module.exports = {
     const user = await Users.findOne({ userId: ownerId });
     if (!user) {
       await interaction.editReply({
-        content: "You don't have any teams. To create a team, use `/createteam`.",
+        content:
+          "You don't have any teams. To create a team, use `/createteam`.",
         ephemeral: true,
       });
       return;

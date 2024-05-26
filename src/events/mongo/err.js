@@ -1,8 +1,8 @@
-const chalk = require('chalk');
+import chalk from "chalk";
 
-module.exports = {
-    name: "err",
-    execute(err) {
-        console.log(chalk.red(`Error with database connection!:\n${err}`));
-    },
-}
+export default {
+  name: "err",
+  execute(err) {
+    console.log(chalk.red(`Error with database connection!:\n${err}`));
+  },
+};

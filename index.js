@@ -1,18 +1,18 @@
-require("dotenv").config();
-const fs = require("fs");
-const {
+import "dotenv/config";
+import fs from "fs";
+import {
   Client,
   Collection,
   GatewayIntentBits,
   EmbedBuilder,
   ActionRowBuilder,
   UserSelectMenuBuilder,
-} = require("discord.js");
-const { connect } = require("mongoose");
-const Invites = require("./src/schema/invites");
-const Users = require("./src/schema/users");
-const TeamIdCounter = require("./src/schema/teamIdCounter");
-const TemporaryTeamName = require("./src/schema/tempTeamName");
+} from "discord.js";
+import { connect } from "mongoose";
+import Invites from "./src/schema/invites.js";
+import Users from "./src/schema/users.js";
+import TeamIdCounter from "./src/schema/teamIdCounter.js";
+import TemporaryTeamName from "./src/schema/tempTeamName.js";
 
 const { TOKEN, DBTOKEN } = process.env;
 
@@ -35,7 +35,8 @@ for (const folder of functionPath) {
     .filter((file) => file.endsWith(".js"));
 
   for (const file of functionFiles) {
-    require(`./src/functions/${folder}/${file}`)(client);
+    const func = await import(`./src/functions/${folder}/${file}`);
+    func.default(client);
   }
 }
 
@@ -46,12 +47,10 @@ client.on("interactionCreate", async (interaction) => {
     !interaction.isStringSelectMenu()
   )
     return;
-  // console.log(interaction);
 
   let currentSelectedTeam;
   if (interaction.customId.includes(":")) {
     const [customId, currentSelectedTeam] = interaction.customId.split(":");
-    // console.log(customId, currentSelectedTeam);
     if (customId === "add_members") {
       await interaction.deferReply({ ephemeral: true });
       let selectedTeamMembers = interaction.values;
@@ -69,7 +68,6 @@ client.on("interactionCreate", async (interaction) => {
           ephemeral: true,
         });
       }
-      // console.log("currentSelectedTeam", currentSelectedTeam);
       const team = user.teams.find(
         (team) => team.teamName === currentSelectedTeam
       );
@@ -128,27 +126,28 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       if (hasDuplicates && alreadyInTeam.length > 0) {
-        await interaction.editReply({
-          content: `${alreadyInTeamUsernames} already in team **${currentSelectedTeam}**.`,
-          ephemeral: true,
-        });
-        return;
-      } else if (
-        hasDuplicates &&
-        selectedTeamMembers.length > 0 &&
-        alreadyInTeam.length > 0
-      ) {
-        await interaction.editReply({
-          content: `Added ${selectedTeamMembersUsernames} to team **${currentSelectedTeam}**. 🎉\n${alreadyInTeamUsernames} already in team **${currentSelectedTeam}**.`,
-          ephemeral: true,
-        });
-        return;
+        if (selectedTeamMembers.length > 0) {
+          await interaction.editReply({
+            content: `Added ${selectedTeamMembersUsernames} to team **${currentSelectedTeam}**. 🎉\n${alreadyInTeamUsernames} already in team **${currentSelectedTeam}**.`,
+            ephemeral: true,
+          });
+        } else {
+          await interaction.editReply({
+            content: `${alreadyInTeamUsernames} already in team **${currentSelectedTeam}**.`,
+            ephemeral: true,
+          });
+        }
       } else if (selectedTeamMembers.length === 0) {
         await interaction.editReply({
           content: `No new members added to team **${currentSelectedTeam}**.`,
           ephemeral: true,
         });
-        return;
+      } else {
+        // Handle the case where there are new members without duplicates
+        await interaction.editReply({
+          content: `Added ${selectedTeamMembersUsernames} to team **${currentSelectedTeam}**. 🎉`,
+          ephemeral: true,
+        });
       }
 
       await interaction.editReply({
@@ -159,7 +158,6 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.deferReply({ ephemeral: true });
       let selectedTeamMembers = interaction.values;
       const ownerId = interaction.user.id;
-      // filter owner from selected members
       selectedTeamMembers = selectedTeamMembers.filter(
         (member) => member !== ownerId
       );
@@ -184,7 +182,6 @@ client.on("interactionCreate", async (interaction) => {
 
       const members = team.teamMembers;
 
-      // filter members that are not in the team
       selectedTeamMembers = selectedTeamMembers.filter((member) =>
         members.some((m) => m.userId === member)
       );
@@ -229,7 +226,6 @@ client.on("interactionCreate", async (interaction) => {
       const commandOwnerId = interaction.message.interaction.user.id;
 
       await interaction.deferReply({ ephemeral: true });
-      // Check if the user who clicked the button is the command owner
       if (interaction.user.id !== commandOwnerId) {
         await interaction.editReply({
           content: "You are not authorized to cancel this invite.",
@@ -237,7 +233,6 @@ client.on("interactionCreate", async (interaction) => {
         });
         return;
       }
-      // Check if there's an existing invite
       const invite = await Invites.findOne({ ownerId: ownerId });
       if (!invite) {
         await interaction.editReply({
@@ -247,7 +242,6 @@ client.on("interactionCreate", async (interaction) => {
         return;
       }
 
-      // Edit embed message to show that the invite has been canceled
       const channel = await client.channels?.fetch(invite.channelId);
       const message = await channel.messages?.fetch(invite.messageId);
       if (message) {
@@ -265,17 +259,14 @@ client.on("interactionCreate", async (interaction) => {
           embed.setDescription(`**Team Up invite CLOSED! ❌**`);
         }
 
-        // Edit footer
         embed.setFooter({ text: `Invitation is no longer active.` });
         embed.setTimestamp();
         await message.reactions.removeAll();
         await message.edit({ embeds: [embed] });
       }
 
-      // Delete the invite
       await Invites.deleteOne({ ownerId: ownerId });
 
-      // Respond to the interaction
       await interaction.editReply({
         content: `${invite.game} invite closed.`,
         embeds: [],
@@ -328,7 +319,6 @@ client.on("interactionCreate", async (interaction) => {
           await tempTeamName.deleteOne();
         }
       } else {
-        // add team to user
         const res = await Users.updateOne(
           { userId: ownerId },
           {
@@ -369,7 +359,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       currentSelectedTeam = interaction.values[0];
-      // console.log(currentSelectedTeam);
       const team = user.teams.find(
         (team) => team.teamName === currentSelectedTeam
       );
@@ -404,7 +393,6 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true,
       });
     } else if (interaction.customId === "remove_team_members") {
-      // await interaction.deferReply({ ephemeral: true });
       const ownerId = interaction.user.id;
 
       const user = await Users.findOne({ userId: ownerId });
@@ -428,13 +416,12 @@ client.on("interactionCreate", async (interaction) => {
           ephemeral: true,
         });
       }
-      // list team members in the team
       await interaction.reply({
         content: `Team **${currentSelectedTeam}** members: ${team.teamMembers
           .map((member) => `<@${member.userId}>`)
           .join(", ")}`,
         ephemeral: true,
-      })
+      });
 
       const members = team.teamMembers;
 
@@ -465,7 +452,10 @@ async function getNextTeamId() {
 }
 
 (async () => {
-  require("./src/functions/handlers/eventHandler")(client);
+  const { default: eventHandler } = await import(
+    "./src/functions/handlers/eventHandler.js"
+  );
+  eventHandler(client);
   client.eventHandler();
   client.commandHandler();
 })();

@@ -1,13 +1,13 @@
-const {
+import {
   SlashCommandBuilder,
   EmbedBuilder,
   UserSelectMenuBuilder,
   ActionRowBuilder,
-} = require("discord.js");
-const Users = require("../../schema/users");
-const TemporaryTeamName = require("../../schema/tempTeamName");
+} from "discord.js";
+import Users from "../../schema/users.js";
+import TemporaryTeamName from "../../schema/tempTeamName.js";
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("createteam")
     .setDescription("Create your team.")
@@ -25,6 +25,7 @@ module.exports = {
     const teamName = interaction.options.getString("teamname");
 
     const user = await Users.findOne({ userId: ownerId });
+
     if (
       user &&
       !user.userId === "834638969945587712" &&

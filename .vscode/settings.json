@@ -1,4 +1,7 @@
 {
   "editor.tabSize": 2,
   "files.eol": "\n",
+  "discord.removeLowerDetails": true,
+  "discord.removeDetails": false,
+  "discord.removeRemoteRepository": true,
 }

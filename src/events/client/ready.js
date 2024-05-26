@@ -1,9 +1,9 @@
-require("dotenv").config();
-const chalk = require("chalk");
-const { ActivityType } = require("discord.js");
-const { reinitializeActiveInvite } = require("../../utils/inviteCollectors");
+import "dotenv/config";
+import chalk from "chalk";
+import { ActivityType } from "discord.js";
+import { reinitializeActiveInvite } from "../../utils/inviteCollectors.js";
 
-module.exports = {
+export default {
   name: "ready",
   once: true,
   async execute(client) {
@@ -23,7 +23,11 @@ module.exports = {
         },
       ],
     });
-    reinitializeActiveInvite(client);
+    try {
+      await reinitializeActiveInvite(client);
+    } catch (error) {
+      console.error('Error during reinitializing active invites:', error);
+    }
     console.log(chalk.bgGreenBright(`Ready! Logged in as ${client.user.tag}`));
   },
 };

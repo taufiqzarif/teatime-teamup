@@ -1,5 +1,5 @@
-require("dotenv").config();
-const {
+import "dotenv/config";
+import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
@@ -7,9 +7,10 @@ const {
   ButtonStyle,
   ChannelType,
   PermissionFlagsBits,
-} = require("discord.js");
-const Invites = require("../../schema/invites");
-const Users = require("../../schema/users");
+} from "discord.js";
+import Invites from "../../schema/invites.js";
+import Users from "../../schema/users.js";
+
 const { CLIENT_ID } = process.env;
 
 // 4 hours in milliseconds(just for testing purposes)
@@ -25,7 +26,7 @@ const protectedChannels = [
   "695589856964902952",
 ];
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("teamupadmin")
     .setDescription("Create a game team up invitation!")
