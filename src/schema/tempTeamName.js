@@ -1,5 +1,6 @@
-const mongoose = require("mongoose");
-const { Schema } = mongoose;
+import mongoose from "mongoose";
+
+const { Schema, model } = mongoose;
 
 const temporaryTeamNameSchema = new Schema({
   ownerId: { type: String, required: true, unique: true },

@@ -5,7 +5,7 @@ import Invites from "../schema/invites.js";
 
 const { CLIENT_ID } = process.env;
 
-async function reinitializeActiveInvite(client) {
+export async function reinitializeActiveInvite(client) {
   console.log(chalk.yellowBright("Reinitializing active invites..."));
   try {
     const activeInvites = await Invites.find({
@@ -169,7 +169,3 @@ async function setupCollectorForInvite(message, invite, remainingTime, client) {
   });
   console.log(chalk.greenBright("Collector setup complete!"));
 }
-
-export default {
-  reinitializeActiveInvite,
-};

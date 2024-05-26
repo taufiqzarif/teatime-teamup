@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import Users from "../../schema/users";
-import TemporaryTeamName from "../../schema/tempTeamName";
+import Users from "../../schema/users.js";
+import TemporaryTeamName from "../../schema/tempTeamName.js";
 
 export default {
   data: new SlashCommandBuilder()

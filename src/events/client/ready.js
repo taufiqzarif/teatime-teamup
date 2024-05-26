@@ -23,7 +23,11 @@ export default {
         },
       ],
     });
-    reinitializeActiveInvite(client);
+    try {
+      await reinitializeActiveInvite(client);
+    } catch (error) {
+      console.error('Error during reinitializing active invites:', error);
+    }
     console.log(chalk.bgGreenBright(`Ready! Logged in as ${client.user.tag}`));
   },
 };

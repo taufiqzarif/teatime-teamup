@@ -1,5 +1,7 @@
 import fs from "fs";
-import { connection } from "mongoose";
+import mongoose from "mongoose";
+
+const { connection } = mongoose;
 
 export default async (client) => {
   client.eventHandler = async () => {
@@ -12,7 +14,9 @@ export default async (client) => {
       switch (folder) {
         case "client":
           for (const file of eventFiles) {
-            const event = require(`../../events/${folder}/${file}`);
+            const { default: event } = await import(
+              `../../events/${folder}/${file}`
+            );
             if (event.once) {
               client.once(event.name, (...args) =>
                 event.execute(...args, client)
@@ -27,7 +31,9 @@ export default async (client) => {
 
         case "mongo":
           for (const file of eventFiles) {
-            const event = require(`../../events/${folder}/${file}`);
+            const { default: event } = await import(
+              `../../events/${folder}/${file}`
+            );
             if (event.once) {
               connection.once(event.name, (...args) =>
                 event.execute(...args, client)

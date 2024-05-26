@@ -4,7 +4,7 @@ import {
   ActionRowBuilder,
   StringSelectMenuBuilder,
 } from "discord.js";
-import Users from "../../schema/users";
+import Users from "../../schema/users.js";
 
 export default {
   data: new SlashCommandBuilder()
