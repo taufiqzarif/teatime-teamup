@@ -13,12 +13,8 @@ import Users from "../../schema/users.js";
 
 const { CLIENT_ID } = process.env;
 
-// 4 hours in milliseconds(just for testing purposes)
-const TIME_LIMIT = 4 * 60 * 60 * 1000;
-
-const msToHours = TIME_LIMIT / 1000 / 60 / 60;
-
-const hourOrhours = msToHours > 1 ? "hours" : "hour";
+// max milliseconds for the invite to be active
+const TIME_LIMIT = 2 ** 31 - 1;
 
 const protectedChannels = [
   "739872603170144386",
@@ -182,7 +178,7 @@ export default {
           ])
           .setThumbnail(gameThumbnailURL, { dynamic: true }) // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
           .setFooter({
-            text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
+            text: `React ✅ to join the team up!`,
           })
           .setTimestamp(Date.parse(existingInvite.createdTime) + TIME_LIMIT);
 
@@ -286,7 +282,7 @@ export default {
         ])
         .setThumbnail(gameThumbnailURL, { dynamic: true })
         .setFooter({
-          text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
+          text: `React ✅ to join the team up!`,
         })
         .setTimestamp(Date.now() + TIME_LIMIT);
 
@@ -393,7 +389,7 @@ export default {
             .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
             .setThumbnail(gameThumbnailURL, { dynamic: true })
             .setFooter({
-              text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
+              text: `React ✅ to join the team up!`,
             });
           await message.edit({ embeds: [updatedEmbed] });
         }
@@ -440,7 +436,7 @@ export default {
           .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
           .setThumbnail(gameThumbnailURL, { dynamic: true })
           .setFooter({
-            text: `React ✅ to join the team up! Invitation is only valid for ${msToHours} ${hourOrhours}.`,
+            text: `React ✅ to join the team up!`,
           });
 
         // Edit the original message with the updated embed

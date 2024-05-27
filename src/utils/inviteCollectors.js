@@ -21,7 +21,7 @@ export async function reinitializeActiveInvite(client) {
         .fetch(invite.messageId)
         .catch(() => null);
 
-      if (message) {
+      if (message && remainingTime > 0) {
         setupCollectorForInvite(message, invite, remainingTime, client);
       }
     }
