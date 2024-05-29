@@ -3,6 +3,7 @@ import {
   handleAddNewTeamMembers,
   handleTeamMembers,
   handleKickMembers,
+  handleCloseInvite,
 } from "../../services/teamService.js";
 
 export default {
@@ -83,8 +84,12 @@ export default {
         case "kick_team_members":
           await handleKickMembers(interaction);
           break;
+
+        // Close existing invite (show close invite button)
         case "close_invite":
+          await handleCloseInvite(interaction, client);
           break;
+
         default:
           break;
       }

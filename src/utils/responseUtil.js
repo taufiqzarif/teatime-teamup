@@ -16,7 +16,7 @@ export function buildUserActionRow(
 }
 
 export async function buildKickTeamMembersActionRow(teamName, teamMembers) {
-  const options = teamMembers.map(member => ({
+  const options = teamMembers.map((member) => ({
     label: member.userId,
     value: member.userId,
   }));
@@ -27,7 +27,7 @@ export async function buildKickTeamMembersActionRow(teamName, teamMembers) {
       .setPlaceholder(`Select team members to remove`)
       .setMinValues(1)
       .setMaxValues(options.length)
-      .addOptions(options)
+      .addDefaultUsers(options)
   );
 
   return actionRow;

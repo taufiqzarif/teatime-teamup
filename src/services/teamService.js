@@ -1,3 +1,4 @@
+import { EmbedBuilder } from "discord.js";
 import Users from "../schema/users.js";
 import Invites from "../schema/invites.js";
 import TeamIdCounter from "../schema/teamIdCounter.js";
@@ -82,6 +83,47 @@ export async function handleKickMembers(interaction) {
   } else {
     await showKickTeamMembers(interaction);
   }
+}
+
+// Show existing invite and close invite button when user tries to create new team invitation
+export async function handleCloseInvite(interaction, client) {
+  const ownerId = interaction.user.id;
+  const invite = await Invites.findOne({ ownerId });
+  await interaction.deferReply({ ephemeral: true });
+
+  if (!invite) {
+    return await interaction.editReply({
+      content: "No active invites found.",
+      ephemeral: true,
+    });
+  }
+
+  const channel = await client.channels?.fetch(invite.channelId);
+  const message = await channel.messages?.fetch(invite.messageId);
+
+  if (!message && invite) {
+    await invite.deleteOne();
+    return await interaction.editReply({
+      content: `${invite.game} invite closed.`,
+      ephemeral: true,
+    });
+  }
+
+  const embedData = message.embeds[0];
+  const embed = new EmbedBuilder(embedData);
+  embed.setDescription(
+    `**Team Up invite CLOSED! ❌**\n\n${embedData.description ?? ""}`
+  );
+  embed.setFooter({ text: `Invitation is no longer active.` });
+  embed.setTimestamp(invite.createdAt);
+  await message.reactions.removeAll();
+  await message.edit({ embeds: [embed] });
+
+  await Invites.deleteOne({ ownerId });
+  await interaction.editReply({
+    content: `${invite.game} invite closed.`,
+    ephemeral: true,
+  });
 }
 
 async function showAddTeamMembers(interaction) {
