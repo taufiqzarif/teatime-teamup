@@ -4,6 +4,7 @@ import {
   handleTeamMembers,
   handleKickMembers,
   handleCloseInvite,
+  handleErrorMessage,
 } from "../../services/teamService.js";
 
 export default {
@@ -68,7 +69,7 @@ export default {
       const customId = interaction.customId.includes(":")
         ? interaction.customId.split(":")[0]
         : interaction.customId;
-      console.log("customId from interactionCreate", customId);
+
       switch (customId) {
         // Add members when creating a team
         case "add_members":
@@ -90,7 +91,9 @@ export default {
           await handleCloseInvite(interaction, client);
           break;
 
+        // Default case
         default:
+          await handleErrorMessage(interaction);
           break;
       }
     }

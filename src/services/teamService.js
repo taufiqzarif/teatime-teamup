@@ -11,7 +11,6 @@ import {
 
 // Add new team members to existing team
 export async function handleAddNewTeamMembers(interaction) {
-  console.log("handleAddMembers customId", interaction.customId);
   if (interaction.customId.includes(":")) {
     await addTeamMembers(interaction);
   } else {
@@ -276,6 +275,18 @@ async function kickTeamMembers(interaction) {
     });
   }
 
+  const team = user.teams.find((team) => team.teamName === currentSelectedTeam);
+  selectedTeamMembers = selectedTeamMembers.filter((member) =>
+    team.teamMembers.some((m) => m.userId === member)
+  );
+
+  if (!selectedTeamMembers.length) {
+    return await interaction.editReply({
+      content: `No members selected to remove from team **${currentSelectedTeam}**.`,
+      ephemeral: true,
+    });
+  }
+
   const res = await Users.updateOne(
     { userId: interaction.user.id, "teams.teamName": currentSelectedTeam },
     {
@@ -294,6 +305,13 @@ async function kickTeamMembers(interaction) {
 
   await interaction.editReply({
     content: `Removed ${buildTeamMembersString(selectedTeamMembers)} from team **${currentSelectedTeam}**.`,
+    ephemeral: true,
+  });
+}
+
+export async function handleErrorMessage(interaction) {
+  await interaction.reply({
+    content: "Invalid operation.",
     ephemeral: true,
   });
 }

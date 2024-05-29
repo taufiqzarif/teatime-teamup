@@ -15,24 +15,21 @@ export function buildUserActionRow(
   );
 }
 
-export async function buildKickTeamMembersActionRow(teamName, teamMembers) {
-  const options = teamMembers.map((member) => ({
-    label: member.userId,
-    value: member.userId,
-  }));
+export async function buildKickTeamMembersActionRow(teamName) {
+  // const options = teamMembers.map((member) => member.userId);
+  // console.log("teamMembers", options);
 
   const actionRow = new ActionRowBuilder().setComponents(
     new UserSelectMenuBuilder()
       .setCustomId(`kick_team_members:${teamName}`)
       .setPlaceholder(`Select team members to remove`)
       .setMinValues(1)
-      .setMaxValues(options.length)
-      .addDefaultUsers(options)
+      .setMaxValues(10)
   );
 
   return actionRow;
 }
 
 export function buildTeamMembersString(members) {
-  return members.map((member) => `<@${member}>`).join(", ");
+  return members.map((member) => `<@${member.userId || member}>`).join(", ");
 }
