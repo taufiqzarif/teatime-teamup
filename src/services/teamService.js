@@ -202,6 +202,14 @@ async function addTeamMembers(interaction) {
     (member) => !team.teamMembers.some((m) => m.userId === member)
   );
 
+  // If no new members added
+  if (!selectedTeamMembers.length) {
+    return await interaction.editReply({
+      content: `No new members added to team **${currentSelectedTeam}**.`,
+      ephemeral: true,
+    });
+  }
+
   if (team.teamMembers.length + selectedTeamMembers.length > 20) {
     return await interaction.editReply({
       content: `Team **${currentSelectedTeam}** is full. (Max members: 20)`,
@@ -257,7 +265,9 @@ async function showKickTeamMembers(interaction) {
   }
 
   await interaction.editReply({
-    content: `Team **${currentSelectedTeam}** members: ${buildTeamMembersString(team.teamMembers)}`,
+    embed: [
+      buildCurrentTeamMembersEmbed(currentSelectedTeam, team.teamMembers),
+    ],
     ephemeral: true,
   });
 
@@ -296,9 +306,10 @@ async function kickTeamMembers(interaction) {
     team.teamMembers.some((m) => m.userId === member)
   );
 
+  // If no members removed
   if (!selectedTeamMembers.length) {
     return await interaction.editReply({
-      content: `No members selected to remove from team **${currentSelectedTeam}**.`,
+      content: `No members removed from team **${currentSelectedTeam}**.`,
       ephemeral: true,
     });
   }
