@@ -1,6 +1,5 @@
 import {
   SlashCommandBuilder,
-  UserSelectMenuBuilder,
   ActionRowBuilder,
   StringSelectMenuBuilder,
 } from "discord.js";
@@ -11,7 +10,7 @@ export default {
     .setName("addteam")
     .setDescription("Add team members."),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const ownerId = interaction.user.id;
 

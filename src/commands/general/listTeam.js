@@ -1,6 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import Users from "../../schema/users.js";
-import TemporaryTeamName from "../../schema/tempTeamName.js";
+import { buildCurrentTeamMembersEmbed } from "../../utils/responseUtil.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -14,7 +14,7 @@ export default {
         .setRequired(true)
     ),
 
-  async autocomplete(interaction, client) {
+  async autocomplete(interaction) {
     try {
       const ownerId = interaction.user.id;
       const focusedOption = interaction.options.getFocused(true);
@@ -46,7 +46,7 @@ export default {
       });
     }
   },
-  async execute(interaction, client) {
+  async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const ownerId = interaction.user.id;
     const selectedTeam = interaction.options.getString("team");
@@ -80,14 +80,8 @@ export default {
       return;
     }
 
-    const memberList = members.map((member) => `<@${member.userId}>`);
-    const embed = new EmbedBuilder()
-      .setTitle(`Team: ${selectedTeam}`)
-      .setDescription(memberList.join("\n"))
-      .setColor("#5865F2");
-
     await interaction.editReply({
-      embeds: [embed],
+      embeds: [buildCurrentTeamMembersEmbed(selectedTeam, members)],
       ephemeral: true,
     });
   },

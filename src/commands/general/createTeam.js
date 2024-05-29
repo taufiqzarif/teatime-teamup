@@ -18,7 +18,7 @@ export default {
         .setMaxLength(20)
         .setRequired(true)
     ),
-  async execute(interaction, client) {
+  async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const ownerId = interaction.user.id;
     const teamName = interaction.options.getString("teamname");
