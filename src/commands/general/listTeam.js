@@ -71,6 +71,15 @@ export default {
     }
 
     const members = team.teamMembers;
+
+    if (!members.length) {
+      await interaction.editReply({
+        content: `Team **${selectedTeam}** doesn't have any members.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
     const memberList = members.map((member) => `<@${member.userId}>`);
     const embed = new EmbedBuilder()
       .setTitle(`Team: ${selectedTeam}`)
