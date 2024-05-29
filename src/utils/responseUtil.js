@@ -39,7 +39,6 @@ export function buildTeamMembersString(members) {
 }
 
 export function buildCurrentTeamMembersEmbed(teamName, teamMembers) {
-
   const randomHexColor = Math.floor(Math.random() * 16777215).toString(16);
   const currentTeamMembers = teamMembers.map((member) => `<@${member.userId}>`);
   const embed = new EmbedBuilder()
