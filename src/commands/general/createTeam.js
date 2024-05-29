@@ -1,6 +1,5 @@
 import {
   SlashCommandBuilder,
-  EmbedBuilder,
   UserSelectMenuBuilder,
   ActionRowBuilder,
 } from "discord.js";
@@ -57,7 +56,7 @@ export default {
     );
 
     const selectMenu = new UserSelectMenuBuilder()
-      .setCustomId("team_members")
+      .setCustomId("add_members")
       .setPlaceholder("Select team members")
       .setMinValues(1)
       .setMaxValues(10);
