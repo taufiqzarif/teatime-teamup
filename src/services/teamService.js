@@ -7,6 +7,7 @@ import {
   buildUserActionRow,
   buildTeamMembersString,
   buildKickTeamMembersActionRow,
+  buildCurrentTeamMembersEmbed,
 } from "../utils/responseUtil.js";
 
 // Add new team members to existing team
@@ -21,6 +22,7 @@ export async function handleAddNewTeamMembers(interaction) {
 // Add members when creating a team
 export async function handleTeamMembers(interaction) {
   await interaction.deferReply({ ephemeral: true });
+
   const ownerId = interaction.user.id;
   const teamId = await getNextTeamId();
   const selectedTeamMembers = interaction.values.filter(
@@ -86,9 +88,10 @@ export async function handleKickMembers(interaction) {
 
 // Show existing invite and close invite button when user tries to create new team invitation
 export async function handleCloseInvite(interaction, client) {
+  await interaction.deferReply({ ephemeral: true });
+
   const ownerId = interaction.user.id;
   const invite = await Invites.findOne({ ownerId });
-  await interaction.deferReply({ ephemeral: true });
 
   if (!invite) {
     return await interaction.editReply({
@@ -127,6 +130,7 @@ export async function handleCloseInvite(interaction, client) {
 
 async function showAddTeamMembers(interaction) {
   await interaction.deferReply({ ephemeral: true });
+
   const ownerId = interaction.user.id;
   const user = await Users.findOne({ userId: ownerId });
 
@@ -154,13 +158,21 @@ async function showAddTeamMembers(interaction) {
     });
   }
 
+  await interaction.editReply({
+    embeds: [
+      buildCurrentTeamMembersEmbed(currentSelectedTeam, team.teamMembers),
+    ],
+    ephemeral: true,
+  });
+
   const actionRow = buildUserActionRow(
     `add_team_members:${currentSelectedTeam}`,
     `Select team members: ${currentSelectedTeam}`,
     1,
     10
   );
-  await interaction.editReply({
+
+  await interaction.followUp({
     content: "Select team members",
     components: [actionRow.toJSON()],
     ephemeral: true,
@@ -222,6 +234,8 @@ async function addTeamMembers(interaction) {
 }
 
 async function showKickTeamMembers(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
   const ownerId = interaction.user.id;
   const user = await Users.findOne({ userId: ownerId });
 
@@ -242,14 +256,16 @@ async function showKickTeamMembers(interaction) {
     });
   }
 
-  await interaction.reply({
+  await interaction.editReply({
     content: `Team **${currentSelectedTeam}** members: ${buildTeamMembersString(team.teamMembers)}`,
     ephemeral: true,
   });
-  const actionRow = await buildKickTeamMembersActionRow(
+
+  const actionRow = buildKickTeamMembersActionRow(
     currentSelectedTeam,
     team.teamMembers
   );
+
   await interaction.followUp({
     content: "Select team members to remove",
     components: [actionRow],
