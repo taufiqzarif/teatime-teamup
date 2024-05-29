@@ -7,10 +7,10 @@ import Users from "../../schema/users.js";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("removeteammembers")
-    .setDescription("Remove team members."),
+    .setName("kickmember")
+    .setDescription("Kick team member(s) from team."),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const ownerId = interaction.user.id;
 
@@ -26,7 +26,7 @@ export default {
 
     const actionRow = new ActionRowBuilder().setComponents(
       new StringSelectMenuBuilder()
-        .setCustomId("remove_team_members")
+        .setCustomId("kick_team_members")
         .setPlaceholder("Select team")
         .setOptions(
           user.teams.map((team) => ({

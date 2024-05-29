@@ -1,4 +1,11 @@
 import { Events, InteractionType } from "discord.js";
+import {
+  handleAddNewTeamMembers,
+  handleTeamMembers,
+  handleKickMembers,
+  handleCloseInvite,
+  handleErrorMessage,
+} from "../../services/teamService.js";
 
 export default {
   name: Events.InteractionCreate,
@@ -23,45 +30,7 @@ export default {
           ephemeral: true,
         });
       }
-    }
-    // else if(interaction.isButton()) {
-    //     const {buttons} = client;
-    //     const {customId} = interaction;
-    //     const button = buttons.get(customId);
-    //     if(!button) return new Error(`No button matching ${customId} was found!`);
-
-    //     try {
-    //         await button.execute(interaction, client);
-    //     }
-    //     catch(error) {
-    //         console.error(`Error executing ${customId}!`);
-    //         console.error(error);
-    //         await interaction.reply({
-    //             content: `Error executing ${customId}`,
-    //             ephemeral: true
-    //         });
-    //     }
-    // }
-    // else if(interaction.isStringSelectMenu()) {
-    //     console.log(client);
-    //     const {selectMenus} = client;
-    //     const {customId} = interaction;
-    //     const selectMenu = selectMenus.get(customId);
-    //     if(!selectMenu) return new Error(`No select menu matching ${customId} was found!`);
-
-    //     try {
-    //         await selectMenu.execute(interaction, client);
-    //     }
-    //     catch(error) {
-    //         console.error(`Error executing ${customId}!`);
-    //         console.error(error);
-    //         await interaction.reply({
-    //             content: `Error executing ${customId}`,
-    //             ephemeral: true
-    //         });
-    //     }
-    // }
-    else if (interaction.isContextMenuCommand()) {
+    } else if (interaction.isContextMenuCommand()) {
       const { contextMenus } = client;
       const { commandName } = interaction;
       const contextMenu = contextMenus.get(commandName);
@@ -91,6 +60,41 @@ export default {
       } catch (error) {
         console.error(`Error executing ${commandName}!`);
         console.error(error);
+      }
+    } else if (
+      interaction.isButton() ||
+      interaction.isUserSelectMenu() ||
+      interaction.isStringSelectMenu()
+    ) {
+      const customId = interaction.customId.includes(":")
+        ? interaction.customId.split(":")[0]
+        : interaction.customId;
+
+      switch (customId) {
+        // Add members when creating a team
+        case "add_members":
+          await handleTeamMembers(interaction);
+          break;
+
+        // Add members to an existing team
+        case "add_team_members":
+          await handleAddNewTeamMembers(interaction);
+          break;
+
+        // Kick member(s) from a team
+        case "kick_team_members":
+          await handleKickMembers(interaction);
+          break;
+
+        // Close existing invite (show close invite button)
+        case "close_invite":
+          await handleCloseInvite(interaction, client);
+          break;
+
+        // Default case
+        default:
+          await handleErrorMessage(interaction);
+          break;
       }
     }
   },
