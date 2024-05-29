@@ -9,7 +9,7 @@
   },
   "engineStrict": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "Taufiq Zarif",
@@ -17,14 +17,15 @@
   "dependencies": {
     "chalk": "^4.1.2",
     "discord.js": "^14.15.2",
-    "mongoose": "^8.4.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.4.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1.0.1",
     "@eslint/js": "^9.3.0",
     "eslint": "^9.3.0",
     "globals": "^15.3.0",
+    "nodemon": "^3.1.1",
     "prettier": "^3.2.5"
   }
 }
