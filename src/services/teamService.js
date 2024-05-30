@@ -6,7 +6,6 @@ import TemporaryTeamName from "../schema/tempTeamName.js";
 import {
   buildUserActionRow,
   buildTeamMembersString,
-  buildKickTeamMembersActionRow,
   buildCurrentTeamMembersEmbed,
 } from "../utils/responseUtil.js";
 
@@ -103,12 +102,23 @@ export async function handleCloseInvite(interaction, client) {
   const channel = await client.channels?.fetch(invite.channelId);
   const message = await channel.messages?.fetch(invite.messageId);
 
-  if (!message && invite) {
-    await invite.deleteOne();
+  if (!message && !invite) {
     return await interaction.editReply({
+      content: "No active invites found.",
+      ephemeral: true,
+    });
+  }
+
+  // If team invite, delete the private channel
+  if (invite.teamInvite) {
+    await interaction.editReply({
       content: `${invite.game} invite closed.`,
       ephemeral: true,
     });
+
+    await invite.deleteOne();
+    await channel.delete();
+    return;
   }
 
   const embedData = message.embeds[0];
@@ -121,7 +131,7 @@ export async function handleCloseInvite(interaction, client) {
   await message.reactions.removeAll();
   await message.edit({ embeds: [embed] });
 
-  await Invites.deleteOne({ ownerId });
+  await invite.deleteOne();
   await interaction.editReply({
     content: `${invite.game} invite closed.`,
     ephemeral: true,
@@ -265,20 +275,20 @@ async function showKickTeamMembers(interaction) {
   }
 
   await interaction.editReply({
-    embed: [
-      buildCurrentTeamMembersEmbed(currentSelectedTeam, team.teamMembers),
-    ],
+    embeds: [buildCurrentTeamMembersEmbed(team.teamName, team.teamMembers)],
     ephemeral: true,
   });
 
-  const actionRow = buildKickTeamMembersActionRow(
-    currentSelectedTeam,
-    team.teamMembers
+  const actionRow = buildUserActionRow(
+    `kick_team_members:${team.teamName}`,
+    `Select team members: ${team.teamName}`,
+    1,
+    10
   );
 
   await interaction.followUp({
     content: "Select team members to remove",
-    components: [actionRow],
+    components: [actionRow.toJSON()],
     ephemeral: true,
   });
 }
