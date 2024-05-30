@@ -10,16 +10,8 @@ import {
 } from "discord.js";
 import Invites from "../../schema/invites.js";
 import Users from "../../schema/users.js";
-
-const { CLIENT_ID } = process.env;
-
-const TIME_LIMIT = 7_200_000; // 2 hours in milliseconds
-
-const protectedChannels = [
-  "739872603170144386",
-  "1159544686093021325",
-  "695589856964902952",
-];
+import { setupCollectorForInvite } from "../../services/inviteService.js";
+import { TIME_LIMIT } from "../../utils/constants.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -57,7 +49,7 @@ export default {
         .setRequired(false)
     ),
 
-  async autocomplete(interaction, client) {
+  async autocomplete(interaction) {
     try {
       const ownerId = interaction.user.id;
       const focusedOption = interaction.options.getFocused(true);
@@ -176,7 +168,7 @@ export default {
           ])
           .setThumbnail(gameThumbnailURL, { dynamic: true }) // if valorant then use valorant logo, else if lethal company then use lethal company logo, else use default logo
           .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+            text: `React ✅ to join the team up! Invitation is only valid for ${TIME_LIMIT / 1000 / 60 / 60} hours.`,
           })
           .setTimestamp(Date.parse(existingInvite.createdTime) + TIME_LIMIT);
 
@@ -216,9 +208,8 @@ export default {
         for (const memberId of teamMembers) {
           try {
             // Await the fetch operation to complete
-            const memberObject = await interaction.guild.members.fetch(
-              memberId
-            );
+            const memberObject =
+              await interaction.guild.members.fetch(memberId);
 
             // Check if the member does not have ADMINISTRATOR permissions
             if (
@@ -280,7 +271,7 @@ export default {
         ])
         .setThumbnail(gameThumbnailURL, { dynamic: true })
         .setFooter({
-          text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+          text: `React ✅ to join the team up! Invitation is only valid for ${TIME_LIMIT / 1000 / 60 / 60} hours.`,
         })
         .setTimestamp(Date.now() + TIME_LIMIT);
 
@@ -291,206 +282,15 @@ export default {
       newInvite.channelId = targetChannel.id;
       await newInvite.save();
 
-      const messageFetch = await targetChannel.messages.fetch(message.id);
-      const joinEmoji = "✅"; // Replace with the emoji you want to use
-      await messageFetch.react(joinEmoji);
+      const joinEmoji = "✅";
+      await message.react(joinEmoji);
 
-      const filterUser = (reaction, user) => {
-        return (
-          reaction.emoji.name === joinEmoji &&
-          user.id !== ownerId &&
-          !user.bot &&
-          user.id !== CLIENT_ID
-        );
-      };
-
-      const collector = message.createReactionCollector({
-        filter: filterUser,
-        time: TIME_LIMIT,
-        dispose: true,
-      });
+      const remainingTime = newInvite.expiryTime - Date.now();
+      await setupCollectorForInvite(message, newInvite, remainingTime, client);
 
       await interaction.editReply({
         content: `Team Up invite created! 🎉`,
         ephemeral: true,
-      });
-
-      collector.on("collect", async (reaction, user) => {
-        // console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
-
-        const invite = await Invites.findOne({ ownerId: ownerId });
-
-        // Check if the invite still exists
-        if (!invite) {
-          return;
-        }
-
-        // Check if the maximum number of players has been reached
-        if (invite.players.length >= maxPlayers) {
-          reaction.users.remove(user);
-          return;
-        }
-
-        // Check if the user is already in the players list
-        if (!invite.players.find((player) => player.userId === user.id)) {
-          // Add the user to the players list
-          invite.players.push({ userId: user.id });
-
-          // Save the updated invite
-          await invite.save();
-        }
-        const updatedInvite = await Invites.findOne({ ownerId: ownerId });
-        const updatedPlayers = updatedInvite.players
-          .map((player) => `<@${player.userId}>`)
-          .join("\n");
-
-        // Show different embed if the maximum number of players has been reached
-        if (updatedInvite.players.length === maxPlayers) {
-          // show 2 description, 1st description is the original description, 2nd description is the full description
-          const fullEmbed = new EmbedBuilder()
-            .setColor(`#${randomHexColor}`)
-            .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-            .setDescription(
-              `**Team Up FULL! GLHF! 🎉**\n\n${
-                updatedInvite.description ?? " "
-              }`
-            )
-            .addFields([
-              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
-              {
-                name: "👥 Max Players",
-                value: maxPlayers.toString(),
-                inline: true,
-              },
-              { name: "🕹️ Current Team", value: updatedPlayers },
-            ])
-            .setThumbnail(gameThumbnailURL, { dynamic: true })
-            .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
-            .setFooter({
-              text: "Team Up is currently full.",
-            });
-          await message.edit({ embeds: [fullEmbed] });
-        } else {
-          const updatedEmbed = new EmbedBuilder()
-            .setColor(`#${randomHexColor}`)
-            .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-            .setDescription(updatedInvite.description)
-            .addFields([
-              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
-              {
-                name: "👥 Max Players",
-                value: maxPlayers.toString(),
-                inline: true,
-              },
-              { name: "🕹️ Current Team", value: updatedPlayers },
-            ])
-            .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
-            .setThumbnail(gameThumbnailURL, { dynamic: true })
-            .setFooter({
-              text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
-            });
-          await message.edit({ embeds: [updatedEmbed] });
-        }
-      });
-
-      collector.on("remove", async (reaction, user) => {
-        // console.log(`User ${user.tag} removed their reaction.`);
-        // Fetch the invite from the database
-        const invite = await Invites.findOne({ ownerId: ownerId });
-
-        // Check if the invite still exists
-        if (!invite) {
-          return;
-        }
-
-        // Check if the user is in the players list and remove them
-        invite.players = invite.players.filter(
-          (player) => player.userId !== user.id
-        );
-
-        // Save the updated invite
-        await invite.save();
-
-        // Refetch the updated invite from the database
-        const updatedInvite = await Invites.findOne({ ownerId: ownerId });
-        const updatedPlayers = updatedInvite.players
-          .map((player) => `<@${player.userId}>`)
-          .join("\n");
-
-        // Create the updated embed
-        const updatedEmbed = new EmbedBuilder()
-          .setColor(`#${randomHexColor}`)
-          .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-          .setDescription(updatedInvite.description)
-          .addFields([
-            { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
-            {
-              name: "👥 Max Players",
-              value: maxPlayers.toString(),
-              inline: true,
-            },
-            { name: "🕹️ Current Team", value: updatedPlayers },
-          ])
-          .setTimestamp(Date.parse(updatedInvite.createdTime) + TIME_LIMIT)
-          .setThumbnail(gameThumbnailURL, { dynamic: true })
-          .setFooter({
-            text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
-          });
-
-        // Edit the original message with the updated embed
-        await message.edit({ embeds: [updatedEmbed] });
-      });
-
-      // When the collector timer ends, delete the invite from the database
-      collector.on("end", async () => {
-        const invite = await Invites.findOne({ ownerId: ownerId });
-        if (invite) {
-          const embedData = message.embeds[0];
-          const currentPlayers = invite.players
-            .map((player) => `<@${player.userId}>`)
-            .join("\n");
-          const expiredEmbed = new EmbedBuilder()
-            .setColor(`#${randomHexColor}`)
-            .setTitle(`🎮 ${selectedGame} Team Up Invitation`)
-            .setDescription(
-              `**Team Up invite EXPIRED! ❌**\n\n${
-                embedData.description === null ? "" : embedData.description
-              }`
-            )
-            .addFields([
-              { name: "👤 Host", value: `<@${ownerId}>`, inline: true },
-              {
-                name: "👥 Max Players",
-                value: maxPlayers.toString(),
-                inline: true,
-              },
-              { name: "🕹️ Current Team", value: currentPlayers },
-            ])
-            .setFooter({
-              text: "Invitation is no longer active.",
-            })
-            .setThumbnail(gameThumbnailURL, { dynamic: true })
-            .setTimestamp();
-          await invite.deleteOne();
-
-          try {
-            await message.reactions.removeAll();
-            await message.edit({ embeds: [expiredEmbed], components: [] });
-
-            // Delete private channel
-            if (
-              isTeamInviteOnly &&
-              !protectedChannels.includes(targetChannel.id)
-            ) {
-              await targetChannel.delete();
-            }
-          } catch (error) {
-            if (error.code === 10008) {
-              return;
-            }
-            console.error("Error updating expired invite message:", error);
-          }
-        }
       });
     } catch (error) {
       console.error(error);
