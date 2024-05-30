@@ -6,7 +6,6 @@ import TemporaryTeamName from "../schema/tempTeamName.js";
 import {
   buildUserActionRow,
   buildTeamMembersString,
-  buildKickTeamMembersActionRow,
   buildCurrentTeamMembersEmbed,
 } from "../utils/responseUtil.js";
 
@@ -265,20 +264,22 @@ async function showKickTeamMembers(interaction) {
   }
 
   await interaction.editReply({
-    embed: [
-      buildCurrentTeamMembersEmbed(currentSelectedTeam, team.teamMembers),
+    embeds: [
+      buildCurrentTeamMembersEmbed(team.teamName, team.teamMembers),
     ],
     ephemeral: true,
   });
 
-  const actionRow = buildKickTeamMembersActionRow(
-    currentSelectedTeam,
-    team.teamMembers
+  const actionRow = buildUserActionRow(
+    `kick_team_members:${team.teamName}`,
+    `Select team members: ${team.teamName}`,
+    1,
+    10
   );
 
   await interaction.followUp({
     content: "Select team members to remove",
-    components: [actionRow],
+    components: [actionRow.toJSON()],
     ephemeral: true,
   });
 }
