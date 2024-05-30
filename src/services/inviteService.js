@@ -12,7 +12,6 @@ export async function setupCollectorForInvite(
   remainingTime,
   client
 ) {
-  console.log(chalk.yellowBright("Setting up collector for invite..."));
   const hostId = invite.ownerId;
   const joinEmoji = "✅";
   const isTeamInviteOnly = invite.teamInvite !== null;
@@ -59,8 +58,6 @@ export async function setupCollectorForInvite(
 
     const embedData = message.embeds[0];
     const embed = new EmbedBuilder(embedData);
-    // console.log(embed);
-    // console.log(embed.data.fields);
     embed.data.fields[2].value = updatedPlayers;
 
     // If reached maximum number of players, update description and footer
@@ -103,7 +100,6 @@ export async function setupCollectorForInvite(
 
     // If the team is not full, update the description back to the original
     if (invite.players.length < invite.maxPlayers) {
-      console.log(embed.data);
       if (invite.description) {
         embed.setDescription(`${invite.description}`);
       } else {
@@ -122,69 +118,104 @@ export async function setupCollectorForInvite(
   collector.on("end", async () => {
     const invite = await Invites.findOne({ ownerId: hostId });
 
-    if (invite) {
-      const embedData = message.embeds[0];
-      const embed = new EmbedBuilder(embedData);
-      embed.setDescription(
-        `**Team Up invite EXPIRED! ❌**\n\n${invite.description ?? ""}`
-      );
-      embed.setFooter({ text: "Invitation is no longer active" });
-      await message.reactions.removeAll();
-      await message.edit({ embeds: [embed], components: [] });
-      await invite.deleteOne();
+    if (!invite) {
+      return;
+    }
+
+    // Get latest channel in server
+    const channel = await client.channels
+      .fetch(invite.channelId)
+      .catch(() => null);
+
+    let isMessageDeleted = false;
+
+    // Check if channel still exists
+    if (channel) {
+      // Check if the message still exists (get latest message)
+      const getMessage = await channel.messages
+        .fetch(invite.messageId)
+        .catch(() => null);
+
+      if (!getMessage) {
+        isMessageDeleted = true;
+      }
 
       if (isTeamInviteOnly) {
-        const channel = await client.channels.fetch(invite.channelId);
-        if (channel) {
-          await channel.delete();
-        }
+        await channel.delete();
+      } else if (!isMessageDeleted) {
+        const embedData = message.embeds[0];
+        const embed = new EmbedBuilder(embedData);
+        embed.setDescription(
+          `**Team Up invite EXPIRED! ❌**\n\n${invite.description ?? ""}`
+        );
+        embed.setFooter({ text: "Invitation is no longer active" });
+        await message.reactions.removeAll();
+        await message.edit({ embeds: [embed], components: [] });
       }
     }
-  });
 
-  console.log(chalk.greenBright("Collector setup complete!"));
+    await invite.deleteOne();
+  });
 }
 
 export async function reinitializeActiveInvite(client) {
-  console.log(chalk.yellowBright("Reinitializing active invites..."));
   try {
+    let deletedInvites = 0;
+
     const activeInvites = await Invites.find({
       expiryTime: { $gt: Date.now() },
     });
-    console.log(
-      chalk.bgMagenta(`Total active invites: ${activeInvites.length}`)
-    );
+
     for (const invite of activeInvites) {
       const remainingTime = invite.expiryTime - Date.now();
-      const channel = await client.channels.fetch(invite.channelId);
+      const channel = await client.channels
+        .fetch(invite.channelId)
+        .catch(() => null);
+
       const message = await channel.messages
         .fetch(invite.messageId)
         .catch(() => null);
+
+      if (!channel || !message) {
+        await invite.deleteOne().then(() => deletedInvites++);
+        continue;
+      }
 
       if (message && remainingTime > 0) {
         await setupCollectorForInvite(message, invite, remainingTime, client);
       }
     }
+    console.log(
+      chalk.bgMagenta(`Total active invites: ${activeInvites.length}`)
+    );
 
-    let deletedInvites = 0;
     const expiredInvites = await Invites.find({
       expiryTime: { $lt: Date.now() },
     });
+
     for (const invite of expiredInvites) {
-      const channel = await client.channels.fetch(invite.channelId);
+      const channel = await client.channels
+        .fetch(invite.channelId)
+        .catch(() => null);
       const message = await channel.messages
         .fetch(invite.messageId)
         .catch(() => null);
 
-      if (message) {
+      if (invite.teamInvite) {
+        if (channel) {
+          await channel.delete();
+        }
+      } else if (message) {
         const embedData = message.embeds[0];
         const embed = new EmbedBuilder(embedData);
         embed.setDescription(
-          `**Team Up invite EXPIRED! ❌**\n\n${embed.description ?? ""}`
+          `**Team Up invite EXPIRED! ❌**\n\n${invite.description ?? ""}`
         );
         embed.setFooter({ text: "Invitation is no longer active." });
+        await message.reactions.removeAll();
         await message.edit({ embeds: [embed] });
       }
+
       await invite.deleteOne().then(() => deletedInvites++);
     }
     console.log(
