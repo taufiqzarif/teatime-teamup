@@ -1,7 +1,6 @@
-import "dotenv/config";
 import chalk from "chalk";
 import { ActivityType } from "discord.js";
-import { reinitializeActiveInvite } from "../../utils/inviteCollectors.js";
+import { reinitializeActiveInvite } from "../../services/inviteService.js";
 
 export default {
   name: "ready",
@@ -27,6 +26,8 @@ export default {
       await reinitializeActiveInvite(client);
     } catch (error) {
       console.error('Error during reinitializing active invites:', error);
+      // Shutdown the bot
+      process.exit(1);
     }
     console.log(chalk.bgGreenBright(`Ready! Logged in as ${client.user.tag}`));
   },
