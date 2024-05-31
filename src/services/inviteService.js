@@ -161,6 +161,7 @@ export async function setupCollectorForInvite(
 export async function reinitializeActiveInvite(client) {
   try {
     let deletedInvites = 0;
+    let totalActiveInvites = 0;
 
     const activeInvites = await Invites.find({
       expiryTime: { $gt: Date.now() },
@@ -184,9 +185,10 @@ export async function reinitializeActiveInvite(client) {
       if (message && remainingTime > 0) {
         await setupCollectorForInvite(message, invite, remainingTime, client);
       }
+      totalActiveInvites++;
     }
     console.log(
-      chalk.bgMagenta(`Total active invites: ${activeInvites.length}`)
+      chalk.bgMagenta(`Total active invites: ${totalActiveInvites}`)
     );
 
     const expiredInvites = await Invites.find({
