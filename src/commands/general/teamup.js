@@ -88,7 +88,7 @@ export default {
   async execute(interaction, client) {
     try {
       const ownerId = interaction.user.id;
-
+      const guildId = interaction.guild.id;
       let selectedGame = interaction.options.getString("game");
       // Uppercase first letter of game name
       selectedGame =
@@ -104,12 +104,19 @@ export default {
       if (selectedTeam) {
         const user = await Users.findOne({ userId: ownerId });
         if (user) {
+          // Only allow team from the same guild
           const team = user.teams.find(
-            (team) => team.teamName === selectedTeam
+            (team) => team.teamName === selectedTeam && team.guildId === guildId
           );
-          isTeamInviteOnly = true;
           if (team) {
             teamMembers = team.teamMembers.map((member) => member.userId);
+            isTeamInviteOnly = true;
+          } else {
+            await interaction.reply({
+              content: `Team **${selectedTeam}** doesn't exist or is not from the same guild.`,
+              ephemeral: true,
+            });
+            return;
           }
         }
       }
