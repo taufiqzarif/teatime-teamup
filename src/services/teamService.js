@@ -23,6 +23,7 @@ export async function handleTeamMembers(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
   const ownerId = interaction.user.id;
+  const guildId = interaction.guildId;
   const teamId = await getNextTeamId();
   const selectedTeamMembers = interaction.values.filter(
     (member) => member !== ownerId
@@ -44,6 +45,7 @@ export async function handleTeamMembers(interaction) {
       userId: ownerId,
       teams: [
         {
+          guildId,
           teamId,
           teamName,
           teamMembers: selectedTeamMembers.map((member) => ({
@@ -59,6 +61,7 @@ export async function handleTeamMembers(interaction) {
       {
         $push: {
           teams: {
+            guildId,
             teamId,
             teamName,
             teamMembers: selectedTeamMembers.map((member) => ({

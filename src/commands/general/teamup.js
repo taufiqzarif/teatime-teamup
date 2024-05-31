@@ -52,18 +52,21 @@ export default {
   async autocomplete(interaction) {
     try {
       const ownerId = interaction.user.id;
+      const guildId = interaction.guild.id;
       const focusedOption = interaction.options.getFocused(true);
 
       if (focusedOption.name === "team") {
         const teamChoices = [];
         const user = await Users.findOne({ userId: ownerId });
         if (user) {
-          user.teams.forEach((team) => {
-            teamChoices.push({
+          // Show current guild teams only
+          const teams = user.teams.filter((team) => team.guildId === guildId);
+          teamChoices.push(
+            ...teams.map((team) => ({
               name: team.teamName,
               value: team.teamName,
-            });
-          });
+            }))
+          );
         }
 
         await interaction.respond(

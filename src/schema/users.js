@@ -6,6 +6,7 @@ const usersSchema = new Schema({
   userId: { type: String, required: true },
   teams: [
     {
+      guildId: { type: String, required: true},
       teamId: { type: Number },
       teamName: { type: String, required: true },
       teamMembers: [
