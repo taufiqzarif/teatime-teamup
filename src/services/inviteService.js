@@ -2,6 +2,7 @@ import { EmbedBuilder } from "discord.js";
 import Invites from "../schema/invites.js";
 import chalk from "chalk";
 import dotenv from "dotenv";
+import { TIME_LIMIT } from "../utils/constants.js";
 dotenv.config();
 
 const { CLIENT_ID } = process.env;
@@ -107,9 +108,9 @@ export async function setupCollectorForInvite(
       }
     }
 
-    // If the team is not full, update the footer
+    // If the team is not full, update the footer back to the original
     embed.setFooter({
-      text: "React ✅ to join the team up! Invitation is only valid for 2 hour.",
+      text: `React ✅ to join the team up! Invitation is only valid for ${TIME_LIMIT / 1000 / 60 / 60} hours.`,
     });
 
     await message.edit({ embeds: [embed] });
@@ -187,9 +188,7 @@ export async function reinitializeActiveInvite(client) {
       }
       totalActiveInvites++;
     }
-    console.log(
-      chalk.bgMagenta(`Total active invites: ${totalActiveInvites}`)
-    );
+    console.log(chalk.bgMagenta(`Total active invites: ${totalActiveInvites}`));
 
     const expiredInvites = await Invites.find({
       expiryTime: { $lt: Date.now() },
