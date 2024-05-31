@@ -38,9 +38,9 @@ export default {
     }
 
     // Check if there's an existing team name
-    const existingTeamName = await Users.findOne({
-      "teams.teamName": teamName,
-    });
+    const existingTeamName = user.teams.find(
+      (team) => team.teamName === teamName
+    );
     if (existingTeamName) {
       await interaction.editReply({
         content: `Team name **${teamName}** already exists.`,

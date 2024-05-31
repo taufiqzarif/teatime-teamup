@@ -9,11 +9,12 @@ const invitesSchema = new Schema({
   players: [
     {
       userId: { type: String, required: true },
+      _id: false,
     },
   ],
   messageId: { type: String, required: true },
   channelId: { type: String, required: true },
-  createdTime: { type: Date, default: Date.now },
+  createdTime: { type: Date, default: Date.now, required: true},
   expiryTime: { type: Date, required: true },
   teamInvite: { type: String, required: false },
   maxPlayers: { type: Number, required: true },
