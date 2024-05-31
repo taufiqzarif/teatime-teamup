@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const { Schema, model } = mongoose;
+const { Schema } = mongoose;
 
 const temporaryTeamNameSchema = new Schema({
   ownerId: { type: String, required: true, unique: true },

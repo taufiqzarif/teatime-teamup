@@ -19,54 +19,59 @@ export default {
         .setRequired(true)
     ),
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    const ownerId = interaction.user.id;
-    const teamName = interaction.options.getString("teamname");
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      const ownerId = interaction.user.id;
+      const teamName = interaction.options.getString("teamname");
 
-    const user = await Users.findOne({ userId: ownerId });
+      const user = await Users.findOne({ userId: ownerId });
 
-    if (
-      user &&
-      !user.userId === "834638969945587712" &&
-      user.teams.length > 2
-    ) {
+      if (user) {
+        if (user.userId !== "834638969945587712" && user.teams.length >= 3) {
+          await interaction.editReply({
+            content: "You already have 3 teams (MAX)!",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const existingTeamName = user.teams.find(
+          (team) => team.teamName === teamName
+        );
+        if (existingTeamName) {
+          await interaction.editReply({
+            content: `Team name **${teamName}** already exists.`,
+            ephemeral: true,
+          });
+          return;
+        }
+      }
+
+      await TemporaryTeamName.findOneAndUpdate(
+        { ownerId },
+        { ownerId, teamName },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      const selectMenu = new UserSelectMenuBuilder()
+        .setCustomId("add_members")
+        .setPlaceholder("Select team members")
+        .setMinValues(1)
+        .setMaxValues(10);
+
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+
       await interaction.editReply({
-        content: "Already have 3 teams (MAX)!",
+        content: "Select team members.",
+        components: [row],
         ephemeral: true,
       });
-      return;
-    }
-
-    // Check if there's an existing team name
-    const existingTeamName = user.teams.find(
-      (team) => team.teamName === teamName
-    );
-    if (existingTeamName) {
+    } catch (error) {
+      console.error(error);
       await interaction.editReply({
-        content: `Team name **${teamName}** already exists.`,
+        content: "An error occurred while creating the team.",
         ephemeral: true,
       });
-      return;
     }
-
-    await TemporaryTeamName.findOneAndUpdate(
-      { ownerId },
-      { ownerId, teamName },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    const selectMenu = new UserSelectMenuBuilder()
-      .setCustomId("add_members")
-      .setPlaceholder("Select team members")
-      .setMinValues(1)
-      .setMaxValues(10);
-
-    const row = new ActionRowBuilder().addComponents(selectMenu);
-
-    await interaction.editReply({
-      content: "Select team members.",
-      components: [row],
-      ephemeral: true,
-    });
   },
 };

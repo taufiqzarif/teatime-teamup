@@ -103,21 +103,28 @@ export default {
 
       if (selectedTeam) {
         const user = await Users.findOne({ userId: ownerId });
-        if (user) {
-          // Only allow team from the same guild
-          const team = user.teams.find(
-            (team) => team.teamName === selectedTeam && team.guildId === guildId
-          );
-          if (team) {
-            teamMembers = team.teamMembers.map((member) => member.userId);
-            isTeamInviteOnly = true;
-          } else {
-            await interaction.reply({
-              content: `Team **${selectedTeam}** doesn't exist or is not from the same guild.`,
-              ephemeral: true,
-            });
-            return;
-          }
+        if (!user) {
+          await interaction.reply({
+            content:
+              "You don't have any teams. To create a team, use `/createteam`.",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        // Only allow team from the same guild
+        const team = user.teams.find(
+          (team) => team.teamName === selectedTeam && team.guildId === guildId
+        );
+        if (team) {
+          teamMembers = team.teamMembers.map((member) => member.userId);
+          isTeamInviteOnly = true;
+        } else {
+          await interaction.reply({
+            content: `Team **${selectedTeam}** doesn't exist or is not from the same guild.`,
+            ephemeral: true,
+          });
+          return;
         }
       }
 
