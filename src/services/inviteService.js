@@ -28,7 +28,7 @@ export async function setupCollectorForInvite(
 
   const collector = message.createReactionCollector({
     filter: filterUser,
-    time: remainingTime,
+    time: remainingTime ?? 0,
     dispose: true,
   });
 
@@ -38,6 +38,10 @@ export async function setupCollectorForInvite(
 
     // Check if the invite still exists
     if (!invite) {
+      // Check if collector is still active
+      if (!collector.ended) {
+        collector.stop();
+      }
       return;
     }
 
@@ -81,6 +85,10 @@ export async function setupCollectorForInvite(
 
     // Check if the invite still exists
     if (!invite) {
+      // Check if collector is still active
+      if (!collector.ended) {
+        collector.stop();
+      }
       return;
     }
 
@@ -120,6 +128,9 @@ export async function setupCollectorForInvite(
     const invite = await Invites.findOne({ ownerId: hostId });
 
     if (!invite) {
+      if (!collector.ended) {
+        collector.stop();
+      }
       return;
     }
 
