@@ -6,6 +6,8 @@ async function checkBotPermissions(interaction, channel) {
     PermissionsBitField.Flags.ManageMessages,
     PermissionsBitField.Flags.AddReactions,
     PermissionsBitField.Flags.ManageChannels,
+    PermissionsBitField.Flags.ViewChannel,
+    PermissionsBitField.Flags.ManageMessages,
   ];
 
   const missingBotPermissions = channel

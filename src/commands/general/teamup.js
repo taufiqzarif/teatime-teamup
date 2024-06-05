@@ -12,6 +12,7 @@ import Invites from "../../schema/invites.js";
 import Users from "../../schema/users.js";
 import { setupCollectorForInvite } from "../../services/inviteService.js";
 import { TIME_LIMIT } from "../../utils/constants.js";
+import checkBotPermissions from "../../utils/checkBotPermissions.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -78,43 +79,19 @@ export default {
       }
     } catch (error) {
       console.error(error);
-      await interaction.reply({
-        content: "There was an error while executing this command!",
-        ephemeral: true,
-      });
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: "There was an error while executing this command!",
+          ephemeral: true,
+        });
+      }
     }
   },
 
   async execute(interaction, client) {
     try {
-      const botMember = await interaction.guild.members.fetch(client.user.id);
-      const botPermissions = botMember.permissions;
-
-      const requiredPermissions = [
-        PermissionFlagsBits.ViewChannel,
-        PermissionFlagsBits.SendMessages,
-        PermissionFlagsBits.AddReactions,
-      ];
-
-      // Get missing bot permissions
-      const missingBotPermissions = botPermissions.missing(requiredPermissions);
-
-      // If bot is missing any required permissions, send a reply and return
-      if (missingBotPermissions.length > 0) {
-        const missing = missingBotPermissions
-          .map((perm) => PermissionFlagsBits[perm] || perm)
-          .join(", ");
-
-        const warningMessage = `I am missing the following permissions in the channel: ${missing}`;
-
-        try {
-          await interaction.reply({
-            content: warningMessage,
-            ephemeral: true,
-          });
-        } catch (err) {
-          console.error(err);
-        }
+      let targetChannel = interaction.channel;
+      if (!(await checkBotPermissions(interaction, targetChannel))) {
         return;
       }
 
@@ -127,7 +104,6 @@ export default {
       const maxPlayers = interaction.options.getNumber("maxplayers");
       const description = interaction.options.getString("description");
       const selectedTeam = interaction.options.getString("team");
-      let targetChannel = interaction.channel;
 
       let teamMembers = [];
       let isTeamInviteOnly = false;
@@ -247,16 +223,6 @@ export default {
 
       // Create private channel for team invite
       if (isTeamInviteOnly) {
-        // If bot is missing any required permissions, send a reply and return
-        if (!botPermissions.has(PermissionFlagsBits.ManageChannels)) {
-          await interaction.editReply({
-            content:
-              "I need the `MANAGE_CHANNELS` permission to create a private channel for the team invite.",
-            ephemeral: true,
-          });
-          return;
-        }
-
         const teamMembersMention = teamMembers.map((member) => `<@${member}>`);
         const teamMembersString = teamMembersMention.join(" ");
         // filter teamMembers that has admin
@@ -291,6 +257,13 @@ export default {
               PermissionFlagsBits.ViewChannel,
               PermissionFlagsBits.SendMessages,
             ], // Allow the owner to view and send messages
+          },
+          {
+            id: client.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ], // Allow the bot to view and send messages
           },
         ];
         teamMembers.forEach((member) => {
@@ -359,7 +332,7 @@ export default {
       });
     } catch (error) {
       console.error(error);
-      await interaction.reply({
+      await interaction.editReply({
         content: "There was an error while executing this command!",
         ephemeral: true,
       });
