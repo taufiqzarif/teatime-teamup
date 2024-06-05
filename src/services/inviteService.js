@@ -3,6 +3,7 @@ import Invites from "../schema/invites.js";
 import chalk from "chalk";
 import dotenv from "dotenv";
 import { TIME_LIMIT } from "../utils/constants.js";
+import checkBotPermissions from "../utils/checkBotPermissions.js";
 dotenv.config();
 
 const { CLIENT_ID } = process.env;
@@ -11,8 +12,16 @@ export async function setupCollectorForInvite(
   message,
   invite,
   remainingTime,
-  client
+  client,
+  interaction = null
 ) {
+  if (
+    interaction &&
+    !(await checkBotPermissions(interaction, message.channel))
+  ) {
+    return;
+  }
+
   const hostId = invite.ownerId;
   const joinEmoji = "✅";
   const isTeamInviteOnly = invite.teamInvite !== null;
