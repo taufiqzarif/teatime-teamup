@@ -87,6 +87,37 @@ export default {
 
   async execute(interaction, client) {
     try {
+      const botMember = await interaction.guild.members.fetch(client.user.id);
+      const botPermissions = botMember.permissions;
+
+      const requiredPermissions = [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AddReactions,
+      ];
+
+      // Get missing bot permissions
+      const missingBotPermissions = botPermissions.missing(requiredPermissions);
+
+      // If bot is missing any required permissions, send a reply and return
+      if (missingBotPermissions.length > 0) {
+        const missing = missingBotPermissions
+          .map((perm) => PermissionFlagsBits[perm] || perm)
+          .join(", ");
+
+        const warningMessage = `I am missing the following permissions in the channel: ${missing}`;
+
+        try {
+          await interaction.reply({
+            content: warningMessage,
+            ephemeral: true,
+          });
+        } catch (err) {
+          console.error(err);
+        }
+        return;
+      }
+
       const ownerId = interaction.user.id;
       const guildId = interaction.guild.id;
       let selectedGame = interaction.options.getString("game");
@@ -216,6 +247,16 @@ export default {
 
       // Create private channel for team invite
       if (isTeamInviteOnly) {
+        // If bot is missing any required permissions, send a reply and return
+        if (!botPermissions.has(PermissionFlagsBits.ManageChannels)) {
+          await interaction.editReply({
+            content:
+              "I need the `MANAGE_CHANNELS` permission to create a private channel for the team invite.",
+            ephemeral: true,
+          });
+          return;
+        }
+
         const teamMembersMention = teamMembers.map((member) => `<@${member}>`);
         const teamMembersString = teamMembersMention.join(" ");
         // filter teamMembers that has admin
@@ -261,6 +302,7 @@ export default {
             ],
           });
         });
+
         const teamInviteChannel = await interaction.guild.channels.create({
           name: `${selectedGame.toLowerCase()}-${selectedTeam.toLowerCase()}`,
           type: ChannelType.GuildText,
@@ -303,7 +345,13 @@ export default {
       await message.react(joinEmoji);
 
       const remainingTime = newInvite.expiryTime - Date.now();
-      await setupCollectorForInvite(message, newInvite, remainingTime, client);
+      await setupCollectorForInvite(
+        message,
+        newInvite,
+        remainingTime,
+        client,
+        interaction
+      );
 
       await interaction.editReply({
         content: `Team Up invite created! 🎉`,
