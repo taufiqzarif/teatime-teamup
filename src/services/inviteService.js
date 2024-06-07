@@ -15,168 +15,184 @@ export async function setupCollectorForInvite(
   client,
   interaction = null
 ) {
-  if (
-    interaction &&
-    !(await checkBotPermissions(interaction, message.channel))
-  ) {
-    return;
-  }
-
-  const hostId = invite.ownerId;
-  const joinEmoji = "✅";
-  const isTeamInviteOnly = invite.teamInvite !== null;
-
-  const filterUser = (reaction, user) => {
-    return (
-      reaction.emoji.name === joinEmoji &&
-      user.id !== hostId &&
-      !user.bot &&
-      user.id !== CLIENT_ID
-    );
-  };
-
-  const collector = message.createReactionCollector({
-    filter: filterUser,
-    time: remainingTime ?? 0,
-    dispose: true,
-  });
-
-  // Collector events
-  collector.on("collect", async (reaction, user) => {
-    const invite = await Invites.findOne({ ownerId: hostId });
-
-    // Check if the invite still exists
-    if (!invite) {
-      // Check if collector is still active
-      if (!collector.ended) {
-        collector.stop();
-      }
+  try {
+    if (
+      interaction &&
+      !(await checkBotPermissions(interaction, message.channel))
+    ) {
       return;
     }
 
-    // Check if the maximum number of players has been reached
-    if (invite.players.length >= invite.maxPlayers) {
-      reaction.users.remove(user);
-      return;
-    }
+    const hostId = invite.ownerId;
+    const joinEmoji = "✅";
+    const isTeamInviteOnly = invite.teamInvite !== null;
 
-    // Check if the user is not in the invite
-    if (!invite.players.find((player) => player.userId === user.id)) {
-      invite.players.push({ userId: user.id });
-      await invite.save();
-    }
-
-    const updatedPlayers = invite.players
-      .map((player) => `<@${player.userId}>`)
-      .join("\n");
-
-    const embedData = message.embeds[0];
-    const embed = new EmbedBuilder(embedData);
-    embed.data.fields[2].value = updatedPlayers;
-
-    // If reached maximum number of players, update description and footer
-    if (invite.players.length === invite.maxPlayers) {
-      embed.setDescription(
-        `**Team Up FULL! GLHF! 🎉**\n\n${invite.description ?? ""}`
+    const filterUser = (reaction, user) => {
+      return (
+        reaction.emoji.name === joinEmoji &&
+        user.id !== hostId &&
+        !user.bot &&
+        user.id !== CLIENT_ID
       );
-      embed.setFooter({ text: "Team Up is currently full!" });
-    }
+    };
 
-    if (message.author.bot) {
-      await message.edit({ embeds: [embed] });
-    } else {
-      console.log(chalk.redBright("Message author is not a bot!"));
-    }
-  });
-
-  collector.on("remove", async (reaction, user) => {
-    const invite = await Invites.findOne({ ownerId: hostId });
-
-    // Check if the invite still exists
-    if (!invite) {
-      // Check if collector is still active
-      if (!collector.ended) {
-        collector.stop();
-      }
-      return;
-    }
-
-    // Check if the user is in the players list and remove them
-    invite.players = invite.players.filter(
-      (player) => player.userId !== user.id
-    );
-
-    await invite.save();
-
-    const updatedPlayers = invite.players
-      .map((player) => `<@${player.userId}>`)
-      .join("\n");
-
-    const embedData = message.embeds[0];
-    const embed = new EmbedBuilder(embedData);
-    embed.data.fields[2].value = updatedPlayers;
-
-    // If the team is not full, update the description back to the original
-    if (invite.players.length < invite.maxPlayers) {
-      if (invite.description) {
-        embed.setDescription(`${invite.description}`);
-      } else {
-        embed.setDescription(null);
-      }
-    }
-
-    // If the team is not full, update the footer back to the original
-    embed.setFooter({
-      text: `React ✅ to join the team up! Invitation is only valid for ${TIME_LIMIT / 1000 / 60 / 60} hours.`,
+    const collector = message.createReactionCollector({
+      filter: filterUser,
+      time: remainingTime ?? 0,
+      dispose: true,
     });
 
-    await message.edit({ embeds: [embed] });
-  });
+    try {
+      // Collector events
+      collector.on("collect", async (reaction, user) => {
+        const invite = await Invites.findOne({ ownerId: hostId });
 
-  collector.on("end", async () => {
-    const invite = await Invites.findOne({ ownerId: hostId });
+        // Check if the invite still exists
+        if (!invite) {
+          // Check if collector is still active
+          if (!collector.ended) {
+            collector.stop();
+          }
+          return;
+        }
 
-    if (!invite) {
-      if (!collector.ended) {
-        collector.stop();
-      }
-      return;
-    }
+        // Check if the maximum number of players has been reached
+        if (invite.players.length >= invite.maxPlayers) {
+          reaction.users.remove(user);
+          return;
+        }
 
-    // Get latest channel in server
-    const channel = await client.channels
-      .fetch(invite.channelId)
-      .catch(() => null);
+        // Check if the user is not in the invite
+        if (!invite.players.find((player) => player.userId === user.id)) {
+          invite.players.push({ userId: user.id });
+          await invite.save();
+        }
 
-    let isMessageDeleted = false;
+        const updatedPlayers = invite.players
+          .map((player) => `<@${player.userId}>`)
+          .join("\n");
 
-    // Check if channel still exists
-    if (channel) {
-      // Check if the message still exists (get latest message)
-      const getMessage = await channel.messages
-        .fetch(invite.messageId)
-        .catch(() => null);
-
-      if (!getMessage) {
-        isMessageDeleted = true;
-      }
-
-      if (isTeamInviteOnly) {
-        await channel.delete();
-      } else if (!isMessageDeleted) {
         const embedData = message.embeds[0];
         const embed = new EmbedBuilder(embedData);
-        embed.setDescription(
-          `**Team Up invite EXPIRED! ❌**\n\n${invite.description ?? ""}`
-        );
-        embed.setFooter({ text: "Invitation is no longer active" });
-        await message.reactions.removeAll();
-        await message.edit({ embeds: [embed], components: [] });
-      }
+        embed.data.fields[2].value = updatedPlayers;
+
+        // If reached maximum number of players, update description and footer
+        if (invite.players.length === invite.maxPlayers) {
+          embed.setDescription(
+            `**Team Up FULL! GLHF! 🎉**\n\n${invite.description ?? ""}`
+          );
+          embed.setFooter({ text: "Team Up is currently full!" });
+        }
+
+        if (message.author.bot) {
+          await message.edit({ embeds: [embed] });
+        } else {
+          console.log(chalk.redBright("Message author is not a bot!"));
+        }
+      });
+    } catch (err) {
+      console.error("Error handling collector collect event:", err);
     }
 
-    await invite.deleteOne();
-  });
+    try {
+      collector.on("remove", async (reaction, user) => {
+        const invite = await Invites.findOne({ ownerId: hostId });
+
+        // Check if the invite still exists
+        if (!invite) {
+          // Check if collector is still active
+          if (!collector.ended) {
+            collector.stop();
+          }
+          return;
+        }
+
+        // Check if the user is in the players list and remove them
+        invite.players = invite.players.filter(
+          (player) => player.userId !== user.id
+        );
+
+        await invite.save();
+
+        const updatedPlayers = invite.players
+          .map((player) => `<@${player.userId}>`)
+          .join("\n");
+
+        const embedData = message.embeds[0];
+        const embed = new EmbedBuilder(embedData);
+        embed.data.fields[2].value = updatedPlayers;
+
+        // If the team is not full, update the description back to the original
+        if (invite.players.length < invite.maxPlayers) {
+          if (invite.description) {
+            embed.setDescription(`${invite.description}`);
+          } else {
+            embed.setDescription(null);
+          }
+        }
+
+        // If the team is not full, update the footer back to the original
+        embed.setFooter({
+          text: `React ✅ to join the team up! Invitation is only valid for ${TIME_LIMIT / 1000 / 60 / 60} hours.`,
+        });
+
+        await message.edit({ embeds: [embed] });
+      });
+    } catch (err) {
+      console.error("Error handling collector remove event:", err);
+    }
+
+    try {
+      collector.on("end", async () => {
+        const invite = await Invites.findOne({ ownerId: hostId });
+
+        if (!invite) {
+          if (!collector.ended) {
+            collector.stop();
+          }
+          return;
+        }
+
+        // Get latest channel in server
+        const channel = await client.channels
+          .fetch(invite.channelId)
+          .catch(() => null);
+
+        let isMessageDeleted = false;
+
+        // Check if channel still exists
+        if (channel) {
+          // Check if the message still exists (get latest message)
+          const getMessage = await channel.messages
+            .fetch(invite.messageId)
+            .catch(() => null);
+
+          if (!getMessage) {
+            isMessageDeleted = true;
+          }
+
+          if (isTeamInviteOnly) {
+            await channel.delete();
+          } else if (!isMessageDeleted) {
+            const embedData = message.embeds[0];
+            const embed = new EmbedBuilder(embedData);
+            embed.setDescription(
+              `**Team Up invite EXPIRED! ❌**\n\n${invite.description ?? ""}`
+            );
+            embed.setFooter({ text: "Invitation is no longer active" });
+            await message.reactions.removeAll();
+            await message.edit({ embeds: [embed], components: [] });
+          }
+        }
+
+        await invite.deleteOne();
+      });
+    } catch (err) {
+      console.error("Error handling collector end event:", err);
+    }
+  } catch (err) {
+    console.error("Error setting up collector for invite:", err);
+  }
 }
 
 export async function reinitializeActiveInvite(client) {
@@ -189,24 +205,28 @@ export async function reinitializeActiveInvite(client) {
     });
 
     for (const invite of activeInvites) {
-      const remainingTime = invite.expiryTime - Date.now();
-      const channel = await client.channels
-        .fetch(invite.channelId)
-        .catch(() => null);
+      try {
+        const remainingTime = invite.expiryTime - Date.now();
+        const channel = await client.channels
+          .fetch(invite.channelId)
+          .catch(() => null);
 
-      const message = await channel.messages
-        .fetch(invite.messageId)
-        .catch(() => null);
+        const message = await channel.messages
+          .fetch(invite.messageId)
+          .catch(() => null);
 
-      if (!channel || !message) {
-        await invite.deleteOne().then(() => deletedInvites++);
-        continue;
+        if (!channel || !message) {
+          await invite.deleteOne().then(() => deletedInvites++);
+          continue;
+        }
+
+        if (message && remainingTime > 0) {
+          await setupCollectorForInvite(message, invite, remainingTime, client);
+        }
+        totalActiveInvites++;
+      } catch (err) {
+        console.error("Error handling active invites:", err);
       }
-
-      if (message && remainingTime > 0) {
-        await setupCollectorForInvite(message, invite, remainingTime, client);
-      }
-      totalActiveInvites++;
     }
     console.log(chalk.bgMagenta(`Total active invites: ${totalActiveInvites}`));
 
@@ -243,6 +263,6 @@ export async function reinitializeActiveInvite(client) {
       chalk.bgMagentaBright(`Total expired invites deleted: ${deletedInvites}`)
     );
   } catch (err) {
-    console.log(err);
+    console.error("Error reinitializing active invites:", err);
   }
 }

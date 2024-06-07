@@ -11,35 +11,43 @@ export default {
     .setDescription("Kick team member(s) from team."),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    const ownerId = interaction.user.id;
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      const ownerId = interaction.user.id;
 
-    const user = await Users.findOne({ userId: ownerId });
-    if (!user) {
+      const user = await Users.findOne({ userId: ownerId });
+      if (!user) {
+        await interaction.editReply({
+          content:
+            "You don't have any teams. To create a team, use `/createteam`.",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const actionRow = new ActionRowBuilder().setComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("kick_team_members")
+          .setPlaceholder("Select team")
+          .setOptions(
+            user.teams.map((team) => ({
+              label: team.teamName,
+              value: team.teamName,
+            }))
+          )
+      );
+
       await interaction.editReply({
-        content:
-          "You don't have any teams. To create a team, use `/createteam`.",
+        content: "Select team",
+        components: [actionRow.toJSON()],
         ephemeral: true,
       });
-      return;
+    } catch (error) {
+      console.error(error);
+      await interaction.editReply({
+        content: "There was an error while executing this command!",
+        ephemeral: true,
+      });
     }
-
-    const actionRow = new ActionRowBuilder().setComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId("kick_team_members")
-        .setPlaceholder("Select team")
-        .setOptions(
-          user.teams.map((team) => ({
-            label: team.teamName,
-            value: team.teamName,
-          }))
-        )
-    );
-
-    await interaction.editReply({
-      content: "Select team",
-      components: [actionRow.toJSON()],
-      ephemeral: true,
-    });
   },
 };
