@@ -356,6 +356,52 @@ export async function handleErrorMessage(interaction) {
   });
 }
 
+export async function handleDeleteTeam(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  const ownerId = interaction.user.id;
+  const selectedTeam = interaction.values[0];
+
+  if (!selectedTeam) {
+    return await interaction.editReply({
+      content: "No team selected.",
+      ephemeral: true,
+    });
+  }
+
+  const user = await Users.findOne({ userId: ownerId });
+  if (!user) {
+    return await interaction.editReply({
+      content: "You don't have any teams. To create a team, use `/createteam`.",
+      ephemeral: true,
+    });
+  }
+
+  const team = user.teams.find((team) => team.teamName === selectedTeam);
+  if (!team) {
+    return await interaction.editReply({
+      content: `Team **${selectedTeam}** doesn't exist. 🤷‍♂️`,
+      ephemeral: true,
+    });
+  }
+
+  // Delete team query
+  await Users.updateOne(
+    { userId: ownerId },
+    { $pull: { teams: { teamName: selectedTeam } } }
+  ).catch((err) => {
+    console.error(err);
+    return interaction.editReply({
+      content: "Failed to delete team. Please try again. 🔄",
+      ephemeral: true,
+    });
+  });
+
+  await interaction.editReply({
+    content: `Team **${selectedTeam}** deleted. 🗑️`,
+    ephemeral: true,
+  });
+}
+
 async function getNextTeamId() {
   const counter = await TeamIdCounter.findOneAndUpdate(
     {},
