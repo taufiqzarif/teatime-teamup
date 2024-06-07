@@ -7,7 +7,7 @@ import Users from "../../schema/users.js";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("addteam")
+    .setName("addmembers")
     .setDescription("Add team members."),
 
   async execute(interaction) {

@@ -32,7 +32,7 @@ export async function handleTeamMembers(interaction) {
 
   if (!tempTeamName) {
     return await interaction.editReply({
-      content: "No temporary team name found.",
+      content: "Please use `/addmembers` to add members to an existing team.",
       ephemeral: true,
     });
   }
