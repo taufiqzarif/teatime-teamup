@@ -5,6 +5,7 @@ import {
   handleKickMembers,
   handleCloseInvite,
   handleErrorMessage,
+  handleDeleteTeam,
 } from "../../services/teamService.js";
 
 export default {
@@ -89,6 +90,11 @@ export default {
         // Close existing invite (show close invite button)
         case "close_invite":
           await handleCloseInvite(interaction, client);
+          break;
+
+        // Delete a team
+        case "delete_team":
+          await handleDeleteTeam(interaction);
           break;
 
         // Default case
