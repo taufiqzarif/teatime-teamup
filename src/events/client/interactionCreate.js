@@ -1,4 +1,5 @@
-import { Events, InteractionType } from "discord.js";
+import { Events, InteractionType, EmbedBuilder } from "discord.js";
+import dotenv from "dotenv";
 import {
   handleAddNewTeamMembers,
   handleTeamMembers,
@@ -7,6 +8,7 @@ import {
   handleErrorMessage,
   handleDeleteTeam,
 } from "../../services/teamService.js";
+dotenv.config();
 
 export default {
   name: Events.InteractionCreate,
@@ -43,6 +45,31 @@ export default {
       } catch (error) {
         console.error(`Error executing ${commandName}!`);
         console.error(error);
+        const errorChannel = client.channels.cache.get(
+          process.env.ERROR_LOG_CHANNEL_ID
+        );
+        if (errorChannel) {
+          const embed = new EmbedBuilder()
+            .setTitle(`Error executing ${commandName}`)
+            .setDescription("An error occurred while executing the command")
+            .addFields({ name: "Error command", value: commandName })
+            .addFields({ name: "Error message", value: error.message })
+            .addFields({ name: "Error stack", value: error.stack })
+            .addFields({
+              name: "Error timestamp",
+              value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+            })
+            .addFields({
+              name: "Command executed by",
+              value: `<@${interaction.user.id}>`,
+            })
+            .setColor("#ff0000")
+            .setFooter({ text: "Error Log System" })
+            .setTimestamp();
+
+          errorChannel.send({ embeds: [embed] });
+        }
+
         await interaction.reply({
           content: `Error executing ${commandName}`,
           ephemeral: true,
@@ -67,40 +94,73 @@ export default {
       interaction.isUserSelectMenu() ||
       interaction.isStringSelectMenu()
     ) {
-      const customId = interaction.customId.includes(":")
-        ? interaction.customId.split(":")[0]
-        : interaction.customId;
+      try {
+        const customId = interaction.customId.includes(":")
+          ? interaction.customId.split(":")[0]
+          : interaction.customId;
 
-      switch (customId) {
-        // Add members when creating a team
-        case "add_members":
-          await handleTeamMembers(interaction);
-          break;
+        switch (customId) {
+          // Add members when creating a team
+          case "add_members":
+            await handleTeamMembers(interaction, client);
+            break;
 
-        // Add members to an existing team
-        case "add_team_members":
-          await handleAddNewTeamMembers(interaction);
-          break;
+          // Add members to an existing team
+          case "add_team_members":
+            await handleAddNewTeamMembers(interaction, client);
+            break;
 
-        // Kick member(s) from a team
-        case "kick_team_members":
-          await handleKickMembers(interaction);
-          break;
+          // Kick member(s) from a team
+          case "kick_team_members":
+            await handleKickMembers(interaction, client);
+            break;
 
-        // Close existing invite (show close invite button)
-        case "close_invite":
-          await handleCloseInvite(interaction, client);
-          break;
+          // Close existing invite (show close invite button)
+          case "close_invite":
+            await handleCloseInvite(interaction, client);
+            break;
 
-        // Delete a team
-        case "delete_team":
-          await handleDeleteTeam(interaction);
-          break;
+          // Delete a team
+          case "delete_team":
+            await handleDeleteTeam(interaction, client);
+            break;
 
-        // Default case
-        default:
-          await handleErrorMessage(interaction);
-          break;
+          // Default case
+          default:
+            await handleErrorMessage(interaction, client);
+            break;  
+        }
+      } catch (error) {
+        console.error(`Error executing ${interaction.customId}!`);
+        console.error(error);
+        const errorChannel = client.channels.cache.get(
+          process.env.ERROR_LOG_CHANNEL_ID
+        );
+        if (errorChannel) {
+          const embed = new EmbedBuilder()
+            .setTitle(`Error executing ${interaction.customId}`)
+            .setDescription("An error occurred while executing customId")
+            .addFields({ name: "Error command", value: interaction.customId })
+            .addFields({ name: "Error message", value: error.message })
+            .addFields({ name: "Error stack", value: error.stack })
+            .addFields({
+              name: "Error timestamp",
+              value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+            })
+            .addFields({
+              name: "Command executed by",
+              value: `<@${interaction.user.id}>`,
+            })
+            .setColor("#ff0000")
+            .setFooter({ text: "Error Log System" })
+            .setTimestamp();
+
+          errorChannel.send({ embeds: [embed] });
+        }
+        await interaction.reply({
+          content: `Error executing customId`,
+          ephemeral: true,
+        });
       }
     }
   },

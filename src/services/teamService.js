@@ -10,24 +10,26 @@ import {
 } from "../utils/responseUtil.js";
 
 // Add new team members to existing team
-export async function handleAddNewTeamMembers(interaction) {
+export async function handleAddNewTeamMembers(interaction, client) {
   try {
     if (interaction.customId.includes(":")) {
-      await addTeamMembers(interaction);
+      await addTeamMembers(interaction, client);
     } else {
-      await showAddTeamMembers(interaction);
+      await showAddTeamMembers(interaction, client);
     }
   } catch (error) {
     console.error(`Error in handleAddNewTeamMembers: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error adding team members. Please try again. 🔄`
     );
   }
 }
 
 // Add members when creating a team
-export async function handleTeamMembers(interaction) {
+export async function handleTeamMembers(interaction, client) {
   try {
     await interaction.deferReply({ ephemeral: true });
 
@@ -90,23 +92,27 @@ export async function handleTeamMembers(interaction) {
     console.error(`Error in handleTeamMembers: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error creating team. Please try again. 🔄`
     );
   }
 }
 
 // Kick member(s) from a team
-export async function handleKickMembers(interaction) {
+export async function handleKickMembers(interaction, client) {
   try {
     if (interaction.customId.includes(":")) {
-      await kickTeamMembers(interaction);
+      await kickTeamMembers(interaction, client);
     } else {
-      await showKickTeamMembers(interaction);
+      await showKickTeamMembers(interaction, client);
     }
   } catch (error) {
     console.error(`Error in handleKickMembers: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error kicking team members. Please try again. 🔄`
     );
   }
@@ -168,12 +174,14 @@ export async function handleCloseInvite(interaction, client) {
     console.error(`Error in handleCloseInvite: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error closing invite. Please try again. 🔄`
     );
   }
 }
 
-async function showAddTeamMembers(interaction) {
+async function showAddTeamMembers(interaction, client) {
   try {
     await interaction.deferReply({ ephemeral: true });
 
@@ -230,12 +238,14 @@ async function showAddTeamMembers(interaction) {
     console.error(`Error in showAddTeamMembers: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error adding team members. Please try again. 🔄`
     );
   }
 }
 
-async function addTeamMembers(interaction) {
+async function addTeamMembers(interaction, client) {
   try {
     const [, currentSelectedTeam] = interaction.customId.split(":");
     await interaction.deferReply({ ephemeral: true });
@@ -302,12 +312,14 @@ async function addTeamMembers(interaction) {
     console.error(`Error in addTeamMembers: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error adding team members. Please try again. 🔄`
     );
   }
 }
 
-async function showKickTeamMembers(interaction) {
+async function showKickTeamMembers(interaction, client) {
   try {
     await interaction.deferReply({ ephemeral: true });
 
@@ -355,12 +367,14 @@ async function showKickTeamMembers(interaction) {
     console.error(`Error in showKickTeamMembers: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error kicking team members. Please try again. 🔄`
     );
   }
 }
 
-async function kickTeamMembers(interaction) {
+async function kickTeamMembers(interaction, client) {
   try {
     const [, currentSelectedTeam] = interaction.customId.split(":");
     await interaction.deferReply({ ephemeral: true });
@@ -418,19 +432,69 @@ async function kickTeamMembers(interaction) {
     console.error(`Error in kickTeamMembers: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error kicking team members. Please try again. 🔄`
     );
   }
 }
 
-export async function handleErrorMessage(interaction, message = null) {
-  await interaction.reply({
-    content: message || "An error occurred. Please try again.",
+export async function handleErrorMessage(
+  interaction,
+  client = null,
+  error = null,
+  message = null
+) {
+  await interaction.deferReply({ ephemeral: true });
+
+  if (client) {
+    const errorChannel = client.channels.cache.get(
+      process.env.ERROR_LOG_CHANNEL_ID
+    );
+    if (errorChannel) {
+      const embed = new EmbedBuilder()
+        .setTitle(
+          `Error executing ${interaction?.commandName || interaction?.message?.interaction?.commandName || "Unknown"}`
+        )
+        .setDescription("An error occurred while executing the command")
+        .addFields({
+          name: "Error command",
+          value:
+            interaction?.commandName ||
+            interaction?.message?.interaction?.commandName ||
+            "Unknown",
+        })
+        .addFields({
+          name: "Error customId",
+          value: interaction?.customId ?? "No customId",
+        })
+        .addFields({
+          name: "Error message",
+          value: error?.message ?? "No message",
+        })
+        .addFields({ name: "Error stack", value: error?.stack ?? "No stack" })
+        .addFields({
+          name: "Error timestamp",
+          value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+        })
+        .addFields({
+          name: "Command executed by",
+          value: `<@${interaction.user.id}>`,
+        })
+        .setColor("#ff0000")
+        .setFooter({ text: "Error Log System" })
+        .setTimestamp();
+
+      errorChannel.send({ embeds: [embed] });
+    }
+  }
+  await interaction.editReply({
+    content: message?.toString() ?? "An error occurred. Please try again.",
     ephemeral: true,
   });
 }
 
-export async function handleDeleteTeam(interaction) {
+export async function handleDeleteTeam(interaction, client) {
   try {
     await interaction.deferReply({ ephemeral: true });
     const ownerId = interaction.user.id;
@@ -480,6 +544,8 @@ export async function handleDeleteTeam(interaction) {
     console.error(`Error in handleDeleteTeam: ${error}`);
     await handleErrorMessage(
       interaction,
+      client,
+      error,
       `Error deleting team. Please try again. 🔄`
     );
   }
