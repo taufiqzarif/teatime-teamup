@@ -2,11 +2,12 @@ import { Events, InteractionType, EmbedBuilder } from "discord.js";
 import dotenv from "dotenv";
 import {
   handleAddNewTeamMembers,
-  handleTeamMembers,
+  // handleTeamMembers,
   handleKickMembers,
   handleCloseInvite,
   handleErrorMessage,
   handleDeleteTeam,
+  handleAcceptRejectTeamInvite,
 } from "../../services/teamService.js";
 dotenv.config();
 
@@ -101,9 +102,9 @@ export default {
 
         switch (customId) {
           // Add members when creating a team
-          case "add_members":
-            await handleTeamMembers(interaction, client);
-            break;
+          // case "add_members":
+          //   await handleTeamMembers(interaction, client);
+          //   break;
 
           // Add members to an existing team
           case "add_team_members":
@@ -123,6 +124,11 @@ export default {
           // Delete a team
           case "delete_team":
             await handleDeleteTeam(interaction, client);
+            break;
+          
+          // Accept / Reject invite
+          case "prompt_team_invite":
+            await handleAcceptRejectTeamInvite(interaction, client);
             break;
 
           // Default case

@@ -1,8 +1,11 @@
-import { EmbedBuilder } from "discord.js";
+import {
+  EmbedBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+} from "discord.js";
 import Users from "../schema/users.js";
 import Invites from "../schema/invites.js";
-import TeamIdCounter from "../schema/teamIdCounter.js";
-import TemporaryTeamName from "../schema/tempTeamName.js";
 import {
   buildUserActionRow,
   buildTeamMembersString,
@@ -24,77 +27,6 @@ export async function handleAddNewTeamMembers(interaction, client) {
       client,
       error,
       `Error adding team members. Please try again. 🔄`
-    );
-  }
-}
-
-// Add members when creating a team
-export async function handleTeamMembers(interaction, client) {
-  try {
-    await interaction.deferReply({ ephemeral: true });
-
-    const ownerId = interaction.user.id;
-    const guildId = interaction.guildId;
-    const teamId = await getNextTeamId();
-    const selectedTeamMembers = interaction.values.filter(
-      (member) => member !== ownerId
-    );
-    const tempTeamName = await TemporaryTeamName.findOne({ ownerId });
-
-    if (!tempTeamName) {
-      return await interaction.editReply({
-        content: "Please use `/addmembers` to add members to an existing team.",
-        ephemeral: true,
-      });
-    }
-
-    const teamName = tempTeamName.teamName;
-    const user = await Users.findOne({ userId: ownerId });
-
-    if (!user) {
-      const newUser = new Users({
-        userId: ownerId,
-        teams: [
-          {
-            guildId,
-            teamId,
-            teamName,
-            teamMembers: selectedTeamMembers.map((member) => ({
-              userId: member,
-            })),
-          },
-        ],
-      });
-      await newUser.save();
-    } else {
-      await Users.updateOne(
-        { userId: ownerId },
-        {
-          $push: {
-            teams: {
-              guildId,
-              teamId,
-              teamName,
-              teamMembers: selectedTeamMembers.map((member) => ({
-                userId: member,
-              })),
-            },
-          },
-        }
-      );
-    }
-    await tempTeamName.deleteOne();
-    await interaction.editReply({
-      content: `Team ${teamName} created with ${buildTeamMembersString(selectedTeamMembers)}. 🎉`,
-      ephemeral: true,
-    });
-  } catch (error) {
-    console.error(`Error in handleTeamMembers: ${error}`);
-    await handleErrorMessage(
-      interaction,
-      client,
-      error,
-      `Error creating team. Please try again. 🔄`
     );
   }
 }
@@ -208,7 +140,7 @@ async function showAddTeamMembers(interaction, client) {
       });
     }
 
-    if (team.teamMembers.length >= 20) {
+    if (team?.teamMembers.length >= 20) {
       return await interaction.editReply({
         content: `Team **${currentSelectedTeam}** is full. Max members: 20.`,
         ephemeral: true,
@@ -217,7 +149,7 @@ async function showAddTeamMembers(interaction, client) {
 
     await interaction.editReply({
       embeds: [
-        buildCurrentTeamMembersEmbed(currentSelectedTeam, team.teamMembers),
+        buildCurrentTeamMembersEmbed(currentSelectedTeam, team?.teamMembers),
       ],
       ephemeral: true,
     });
@@ -248,10 +180,24 @@ async function showAddTeamMembers(interaction, client) {
 async function addTeamMembers(interaction, client) {
   try {
     const [, currentSelectedTeam] = interaction.customId.split(":");
+    let isCreateTeam = interaction.customId.split(":")[2] || false;
+    // console.log(typeof isCreateTeam);
+    if (isCreateTeam === "true") {
+      isCreateTeam = true;
+    } else {
+      isCreateTeam = false;
+    }
+
     await interaction.deferReply({ ephemeral: true });
+
+    const guildId = interaction.guildId;
+    const guild = await client.guilds.cache.get(guildId);
+
+    // Get selected members
     let selectedTeamMembers = interaction.values.filter(
       (member) => member !== interaction.user.id
     );
+
     const user = await Users.findOne({ userId: interaction.user.id });
 
     if (
@@ -267,18 +213,71 @@ async function addTeamMembers(interaction, client) {
     const team = user.teams.find(
       (team) => team.teamName === currentSelectedTeam
     );
+
+    let totalInvitedMembers = 0;
+
+    // Fetch members from the guild and filter out bots
+    selectedTeamMembers = await Promise.all(
+      selectedTeamMembers.map(async (memberId) => {
+        const member = await guild.members.fetch(memberId).catch(console.error);
+        return member && !member.user.bot ? memberId : null;
+      })
+    );
+
+    // Remove null entries
+    selectedTeamMembers = selectedTeamMembers.filter(
+      (member) => member != null
+    );
+
+    // Filter only members who can be invited
+    selectedTeamMembers = (
+      await Promise.all(
+        selectedTeamMembers.map(async (member) => {
+          const teamUser = await Users.findOne({ userId: member });
+          if (teamUser && teamUser.canBeInvited) {
+            if (teamUser.canDirectJoin) {
+              return member;
+            } else {
+              // prevent adding user unless they accept the invite
+              await handlePromptInviteMessage(
+                interaction,
+                client,
+                currentSelectedTeam,
+                member
+              );
+              totalInvitedMembers++;
+              return null;
+            }
+          } else if (!teamUser) {
+            // If user doesn't exist, send invite
+            await handlePromptInviteMessage(
+              interaction,
+              client,
+              currentSelectedTeam,
+              member
+            );
+            totalInvitedMembers++;
+            return null;
+          }
+          return null; // If user doesn't exist or can't be invited
+        })
+      )
+    ).filter((member) => member != null);
+
+    // Filter out members already in the team
     selectedTeamMembers = selectedTeamMembers.filter(
       (member) => !team.teamMembers.some((m) => m.userId === member)
     );
 
-    // If no new members added
-    if (!selectedTeamMembers.length) {
+    // If no new members added to team and no invites sent
+    if (!selectedTeamMembers.length && totalInvitedMembers === 0) {
       return await interaction.editReply({
         content: `No new members added to team **${currentSelectedTeam}**.`,
         ephemeral: true,
       });
     }
 
+    // Check if team members exceed 20
     if (team.teamMembers.length + selectedTeamMembers.length > 20) {
       return await interaction.editReply({
         content: `Team **${currentSelectedTeam}** is full. (Max members: 20)`,
@@ -304,8 +303,42 @@ async function addTeamMembers(interaction, client) {
       });
     }
 
+    let message = "";
+    if (isCreateTeam === true) {
+      const teamNameMsg = `team **${currentSelectedTeam}**`;
+
+      if (selectedTeamMembers.length > 0) {
+        message += `Team **${currentSelectedTeam}** created with ${buildTeamMembersString(selectedTeamMembers)}. 🎉`;
+      }
+
+      if (totalInvitedMembers > 0) {
+        if (message.length > 0) {
+          message += "\n";
+        }
+        message += `${totalInvitedMembers} invite request sent to selected members to join ${teamNameMsg}. 📩`;
+      }
+
+      if (message.length === 0) {
+        message = `Team **${currentSelectedTeam}** created! 🎉`;
+      }
+    } else {
+      const teamName = `team **${currentSelectedTeam}**`;
+
+      if (selectedTeamMembers.length > 0) {
+        const membersList = buildTeamMembersString(selectedTeamMembers);
+        message += `Added ${membersList} to ${teamName}. 🎉`;
+      }
+
+      if (totalInvitedMembers > 0) {
+        if (message.length > 0) {
+          message += "\n";
+        }
+        message += `${totalInvitedMembers} invite request sent to selected members to join ${teamName}. 📩`;
+      }
+    }
+
     await interaction.editReply({
-      content: `Added ${buildTeamMembersString(selectedTeamMembers)} to team **${currentSelectedTeam}**. 🎉`,
+      content: message,
       ephemeral: true,
     });
   } catch (error) {
@@ -445,8 +478,14 @@ export async function handleErrorMessage(
   error = null,
   message = null
 ) {
-  await interaction.deferReply({ ephemeral: true });
-
+  // Check if the interaction has already been handled
+  if (interaction.replied) {
+    return;
+  }
+  if (!interaction.deferred) {
+    await interaction.deferReply({ ephemeral: true }).catch(console.error);
+  }
+  // console.log("error", error?.message);
   if (client) {
     const errorChannel = client.channels.cache.get(
       process.env.ERROR_LOG_CHANNEL_ID
@@ -470,9 +509,12 @@ export async function handleErrorMessage(
         })
         .addFields({
           name: "Error message",
-          value: error?.message ?? "No message",
+          value: truncateString(error?.message) ?? "No message",
         })
-        .addFields({ name: "Error stack", value: error?.stack ?? "No stack" })
+        .addFields({
+          name: "Error stack",
+          value: truncateString(error?.stack) ?? "No stack",
+        })
         .addFields({
           name: "Error timestamp",
           value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
@@ -551,16 +593,156 @@ export async function handleDeleteTeam(interaction, client) {
   }
 }
 
-async function getNextTeamId() {
+// Prompt invite message to user to join a team with yes/no buttons
+async function handlePromptInviteMessage(interaction, client, team, userId) {
   try {
-    const counter = await TeamIdCounter.findOneAndUpdate(
-      {},
-      { $inc: { counter: 1 } },
-      { new: true, upsert: true }
-    );
-    return counter.counter;
+    const ownerId = interaction.user.id;
+    // Check if the interaction has already been handled
+    if (interaction.replied) {
+      return;
+    }
+    if (!interaction.deferred) {
+      await interaction.deferReply({ ephemeral: true }).catch(console.error);
+    }
+
+    const inviteMessage = new EmbedBuilder()
+      .setTitle(`Invite to join team **${team}**`)
+      .setDescription(
+        `📩 You have been invited to join team **${team}**. Do you want to join? 🤔`
+      )
+      .setColor("#5865F2")
+      .setTimestamp();
+
+    const actionRow = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setLabel("Yes")
+          .setStyle(ButtonStyle.Primary)
+          .setCustomId(`prompt_team_invite:${team}:${ownerId}:${userId}:yes`)
+      )
+      .addComponents(
+        new ButtonBuilder()
+          .setLabel("No")
+          .setStyle(ButtonStyle.Danger)
+          .setCustomId(`prompt_team_invite:${team}:${ownerId}:${userId}:no`)
+      );
+
+    const user = await client.users.fetch(userId).catch((error) => {
+      console.error(`Error fetching user ${userId}: ${error}`);
+      return null;
+    });
+
+    await user
+      .send({
+        content: `You have been invited to join team **${team}**.`,
+        embeds: [inviteMessage],
+        components: [actionRow],
+      })
+      .catch((error) => {
+        console.error(
+          `Error sending invite message to user ${userId}: ${error}`
+        );
+        return interaction.editReply({
+          content: `Error sending invite message to <@${userId}>. <@${userId}> may have disabled server DMs in server's **Privacy Settings**. `,
+          ephemeral: true,
+        });
+      });
+
+    return;
   } catch (error) {
-    console.error(`Error in getNextTeamId: ${error}`);
-    return null;
+    console.error(`Error in handlePromptInviteMessage: ${error}`);
+    await handleErrorMessage(
+      interaction,
+      client,
+      error,
+      `Error sending invite message. Please try again. 🔄`
+    );
   }
+}
+
+export async function handleAcceptRejectTeamInvite(interaction, client) {
+  try {
+    await interaction.deferReply({ ephemeral: false });
+    // console.log("interaction.customId", interaction.customId);
+    const [, invitedTeam, teamOwnerId, userId, action] =
+      interaction.customId.split(":");
+
+    const ownerId = interaction.user.id;
+
+    if (userId !== ownerId) {
+      return await interaction.editReply({
+        content: "You can't accept/reject an invite for another user.",
+        ephemeral: true,
+      });
+    }
+
+    const teamOwnerUser = await Users.findOne({ userId: teamOwnerId });
+    if (!teamOwnerUser) {
+      return await interaction.editReply({
+        content: "Team owner User ID not found.",
+        ephemeral: true,
+      });
+    }
+
+    // Get invited team index
+    const invitedTeamIndex = teamOwnerUser.teams.findIndex(
+      (team) => team.teamName === invitedTeam
+    );
+
+    if (invitedTeamIndex === -1) {
+      return await interaction.editReply({
+        content: `Team **${invitedTeam}** not found.`,
+        ephemeral: true,
+      });
+    }
+    // console.log(
+    //   "invitedTeamIndex",
+    //   invitedTeamIndex,
+    //   teamOwnerUser.teams[invitedTeamIndex]
+    // );
+    // console.log("userId", userId);
+
+    // Check if user is already in the team
+    const isUserInTeam = teamOwnerUser.teams[invitedTeamIndex].teamMembers.some(
+      (member) => member.userId === userId
+    );
+
+    if (isUserInTeam) {
+      return await interaction.editReply({
+        content: `You are already a member of team **${invitedTeam}**.`,
+        ephemeral: true,
+      });
+    }
+
+    let user = await Users.findOne({ userId });
+
+    if (!user && action === "yes") {
+      user = await new Users({
+        userId,
+      }).save();
+
+      teamOwnerUser.teams[invitedTeamIndex].teamMembers.push({ userId });
+      await teamOwnerUser.save();
+    } else if (user && action === "yes") {
+      teamOwnerUser.teams[invitedTeamIndex].teamMembers.push({ userId });
+      await teamOwnerUser.save();
+    }
+
+    await interaction.editReply({
+      content: `${action === "yes" ? `You have joined team **${invitedTeam}**. 🎉` : `You have rejected the invite to join team **${invitedTeam}**. ❌`}`,
+      ephemeral: false,
+    });
+  } catch (error) {
+    console.error(`Error in handleAcceptRejectTeamInvite: ${error}`);
+    await handleErrorMessage(
+      interaction,
+      client,
+      error,
+      `Error accepting/rejecting team invite. Please try again. 🔄`
+    );
+  }
+}
+
+function truncateString(str, maxLength = 1024) {
+  return str.length > maxLength ? str.substring(0, maxLength - 3) + "..." : str;
 }

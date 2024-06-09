@@ -4,7 +4,6 @@ import {
   ActionRowBuilder,
 } from "discord.js";
 import Users from "../../schema/users.js";
-import TemporaryTeamName from "../../schema/tempTeamName.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -22,6 +21,7 @@ export default {
     try {
       await interaction.deferReply({ ephemeral: true });
       const ownerId = interaction.user.id;
+      const guildId = interaction.guild.id;
       const teamName = interaction.options.getString("teamname");
 
       const user = await Users.findOne({ userId: ownerId });
@@ -45,16 +45,18 @@ export default {
           });
           return;
         }
+
+        user.teams.push({ guildId, teamName });
+        await user.save();
+      } else {
+        await new Users({
+          userId: ownerId,
+          teams: [{ guildId, teamName }],
+        }).save();
       }
 
-      await TemporaryTeamName.findOneAndUpdate(
-        { ownerId },
-        { ownerId, teamName },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
-
       const selectMenu = new UserSelectMenuBuilder()
-        .setCustomId("add_members")
+        .setCustomId(`add_team_members:${teamName}:true`)
         .setPlaceholder("Select team members")
         .setMinValues(1)
         .setMaxValues(10);

@@ -20,12 +20,18 @@ export function buildUserActionRow(
 }
 
 export function buildTeamMembersString(members) {
-  return members.map((member) => `<@${member.userId || member}>`).join(", ");
+  return (
+    members.map((member) => `<@${member.userId || member}>`).join(", ") ||
+    "No members"
+  );
 }
 
 export function buildCurrentTeamMembersEmbed(teamName, teamMembers) {
   const randomHexColor = Math.floor(Math.random() * 16777215).toString(16);
-  const currentTeamMembers = teamMembers.map((member) => `<@${member.userId}>`);
+  const currentTeamMembers =
+    teamMembers.length !== 0
+      ? teamMembers?.map((member) => `<@${member.userId}>`)
+      : ["**No members**"];
   const embed = new EmbedBuilder()
     .setTitle(`Team **${teamName}** members:`)
     .setDescription(currentTeamMembers.join("\n"))
