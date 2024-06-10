@@ -239,24 +239,29 @@ async function addTeamMembers(interaction, client) {
               return member;
             } else {
               // prevent adding user unless they accept the invite
-              await handlePromptInviteMessage(
+              const inviteSent = await handlePromptInviteMessage(
                 interaction,
                 client,
                 currentSelectedTeam,
                 member
               );
-              totalInvitedMembers++;
+              if (inviteSent) {
+                totalInvitedMembers++;
+              }
+
               return null;
             }
           } else if (!teamUser) {
             // If user doesn't exist, send invite
-            await handlePromptInviteMessage(
+            const inviteSent = await handlePromptInviteMessage(
               interaction,
               client,
               currentSelectedTeam,
               member
             );
-            totalInvitedMembers++;
+            if (inviteSent) {
+              totalInvitedMembers++;
+            }
             return null;
           }
           return null; // If user doesn't exist or can't be invited
@@ -271,7 +276,7 @@ async function addTeamMembers(interaction, client) {
 
     // If no new members added to team and no invites sent
     if (!selectedTeamMembers.length && totalInvitedMembers === 0) {
-      return await interaction.editReply({
+      return await interaction.followUp({
         content: `No new members added to team **${currentSelectedTeam}**.`,
         ephemeral: true,
       });
@@ -599,7 +604,7 @@ async function handlePromptInviteMessage(interaction, client, team, userId) {
     const ownerId = interaction.user.id;
     // Check if the interaction has already been handled
     if (interaction.replied) {
-      return;
+      return false;
     }
     if (!interaction.deferred) {
       await interaction.deferReply({ ephemeral: true }).catch(console.error);
@@ -627,28 +632,28 @@ async function handlePromptInviteMessage(interaction, client, team, userId) {
           .setCustomId(`prompt_team_invite:${team}:${ownerId}:${userId}:no`)
       );
 
-    const user = await client.users.fetch(userId).catch((error) => {
-      console.error(`Error fetching user ${userId}: ${error}`);
-      return null;
-    });
+    const user = await client.users.fetch(userId);
 
-    await user
+    if (!user) {
+      return false;
+    }
+
+    const result = await user
       .send({
         content: `You have been invited to join team **${team}**.`,
         embeds: [inviteMessage],
         components: [actionRow],
       })
-      .catch((error) => {
-        console.error(
-          `Error sending invite message to user ${userId}: ${error}`
-        );
-        return interaction.editReply({
+      .then(() => true)
+      .catch(async () => {
+        await interaction.followUp({
           content: `Error sending invite message to <@${userId}>. <@${userId}> may have disabled server DMs in server's **Privacy Settings**. `,
           ephemeral: true,
         });
+        return false;
       });
 
-    return;
+    return result;
   } catch (error) {
     console.error(`Error in handlePromptInviteMessage: ${error}`);
     await handleErrorMessage(
