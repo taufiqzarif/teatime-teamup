@@ -11,6 +11,7 @@ import {
   buildTeamMembersString,
   buildCurrentTeamMembersEmbed,
 } from "../utils/responseUtil.js";
+import { logNewUser } from "../utils/logger.js";
 
 // Add new team members to existing team
 export async function handleAddNewTeamMembers(interaction, client) {
@@ -199,11 +200,10 @@ async function addTeamMembers(interaction, client) {
     );
 
     const user = await Users.findOne({ userId: interaction.user.id });
-
-    if (
-      !user ||
-      !user.teams.find((team) => team.teamName === currentSelectedTeam)
-    ) {
+    const isTeamCreated = user?.teams.find(
+      (team) => team.teamName === currentSelectedTeam
+    );
+    if (!user || !isTeamCreated) {
       return await interaction.editReply({
         content: `Team **${currentSelectedTeam}** doesn't exist.`,
         ephemeral: true,
@@ -274,14 +274,6 @@ async function addTeamMembers(interaction, client) {
       (member) => !team.teamMembers.some((m) => m.userId === member)
     );
 
-    // If no new members added to team and no invites sent
-    if (!selectedTeamMembers.length && totalInvitedMembers === 0) {
-      return await interaction.followUp({
-        content: `No new members added to team **${currentSelectedTeam}**.`,
-        ephemeral: true,
-      });
-    }
-
     // Check if team members exceed 20
     if (team.teamMembers.length + selectedTeamMembers.length > 20) {
       return await interaction.editReply({
@@ -309,43 +301,40 @@ async function addTeamMembers(interaction, client) {
     }
 
     let message = "";
-    if (isCreateTeam === true) {
-      const teamNameMsg = `team **${currentSelectedTeam}**`;
+    const teamNameMsg = `team **${currentSelectedTeam}**`;
 
-      if (selectedTeamMembers.length > 0) {
-        message += `Team **${currentSelectedTeam}** created with ${buildTeamMembersString(selectedTeamMembers)}. 🎉`;
-      }
-
-      if (totalInvitedMembers > 0) {
-        if (message.length > 0) {
-          message += "\n";
-        }
-        message += `${totalInvitedMembers} invite request sent to selected members to join ${teamNameMsg}. 📩`;
-      }
-
-      if (message.length === 0) {
-        message = `Team **${currentSelectedTeam}** created! 🎉`;
-      }
-    } else {
-      const teamName = `team **${currentSelectedTeam}**`;
-
-      if (selectedTeamMembers.length > 0) {
-        const membersList = buildTeamMembersString(selectedTeamMembers);
-        message += `Added ${membersList} to ${teamName}. 🎉`;
-      }
-
-      if (totalInvitedMembers > 0) {
-        if (message.length > 0) {
-          message += "\n";
-        }
-        message += `${totalInvitedMembers} invite request sent to selected members to join ${teamName}. 📩`;
-      }
+    if (isCreateTeam) {
+      message += `Team **${currentSelectedTeam}** created! 🎉`;
     }
 
-    await interaction.editReply({
-      content: message,
-      ephemeral: true,
-    });
+    if (selectedTeamMembers.length > 0) {
+      if (message.length > 0) {
+        message += "\n";
+      }
+      message += `Added ${buildTeamMembersString(selectedTeamMembers)} to ${teamNameMsg}. 🎉`;
+    }
+
+    if (totalInvitedMembers > 0) {
+      if (message.length > 0) {
+        message += "\n";
+      }
+      message += `**${totalInvitedMembers}** invite request sent to selected members to join ${teamNameMsg}. 📩`;
+    }
+
+    if (message.length > 0) {
+      await interaction.followUp({
+        content: message,
+        ephemeral: true,
+      });
+    }
+
+    // If no new members added to team and no invites sent
+    if (message.length === 0 || !selectedTeamMembers.length && totalInvitedMembers === 0) {
+      await interaction.followUp({
+        content: `No new members added to team **${currentSelectedTeam}**.`,
+        ephemeral: true,
+      });
+    }
   } catch (error) {
     console.error(`Error in addTeamMembers: ${error}`);
     await handleErrorMessage(
@@ -725,6 +714,8 @@ export async function handleAcceptRejectTeamInvite(interaction, client) {
       user = await new Users({
         userId,
       }).save();
+
+      await logNewUser(client, userId, false);
 
       teamOwnerUser.teams[invitedTeamIndex].teamMembers.push({ userId });
       await teamOwnerUser.save();

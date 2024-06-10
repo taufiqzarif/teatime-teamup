@@ -13,6 +13,7 @@ import Users from "../../schema/users.js";
 import { setupCollectorForInvite } from "../../services/inviteService.js";
 import { TIME_LIMIT } from "../../utils/constants.js";
 import checkBotPermissions from "../../utils/checkBotPermissions.js";
+import { logNewInvite } from "../../utils/logger.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -318,6 +319,9 @@ export default {
       await message.react(joinEmoji);
 
       const remainingTime = newInvite.expiryTime - Date.now();
+
+      await logNewInvite(client, newInvite);
+
       await setupCollectorForInvite(
         message,
         newInvite,

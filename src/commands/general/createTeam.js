@@ -4,6 +4,7 @@ import {
   ActionRowBuilder,
 } from "discord.js";
 import Users from "../../schema/users.js";
+import { logNewUser } from "../../utils/logger.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -17,7 +18,7 @@ export default {
         .setMaxLength(20)
         .setRequired(true)
     ),
-  async execute(interaction) {
+  async execute(interaction, client) {
     try {
       await interaction.deferReply({ ephemeral: true });
       const ownerId = interaction.user.id;
@@ -53,6 +54,8 @@ export default {
           userId: ownerId,
           teams: [{ guildId, teamName }],
         }).save();
+
+        await logNewUser(client, ownerId, true);
       }
 
       const selectMenu = new UserSelectMenuBuilder()
