@@ -329,7 +329,10 @@ async function addTeamMembers(interaction, client) {
     }
 
     // If no new members added to team and no invites sent
-    if (message.length === 0 || !selectedTeamMembers.length && totalInvitedMembers === 0) {
+    if (
+      message.length === 0 ||
+      (!selectedTeamMembers.length && totalInvitedMembers === 0)
+    ) {
       await interaction.followUp({
         content: `No new members added to team **${currentSelectedTeam}**.`,
         ephemeral: true,
@@ -709,7 +712,7 @@ export async function handleAcceptRejectTeamInvite(interaction, client) {
     }
 
     let user = await Users.findOne({ userId });
-
+    let currentActiveTeamInviteChannel = null;
     if (!user && action === "yes") {
       user = await new Users({
         userId,
@@ -719,15 +722,53 @@ export async function handleAcceptRejectTeamInvite(interaction, client) {
 
       teamOwnerUser.teams[invitedTeamIndex].teamMembers.push({ userId });
       await teamOwnerUser.save();
+
+      currentActiveTeamInviteChannel = await getActiveTeamInvitationChannel(
+        interaction,
+        client,
+        teamOwnerId
+      );
+
+      if (currentActiveTeamInviteChannel) {
+        await addNewJoinedMemberToActiveTeamChannel(
+          interaction,
+          client,
+          userId,
+          currentActiveTeamInviteChannel
+        );
+      }
     } else if (user && action === "yes") {
       teamOwnerUser.teams[invitedTeamIndex].teamMembers.push({ userId });
       await teamOwnerUser.save();
+      currentActiveTeamInviteChannel = await getActiveTeamInvitationChannel(
+        interaction,
+        client,
+        teamOwnerId
+      );
+
+      if (currentActiveTeamInviteChannel) {
+        await addNewJoinedMemberToActiveTeamChannel(
+          interaction,
+          client,
+          userId,
+          currentActiveTeamInviteChannel
+        );
+      }
     }
 
     await interaction.editReply({
       content: `${action === "yes" ? `You have joined team **${invitedTeam}**. 🎉` : `You have rejected the invite to join team **${invitedTeam}**. ❌`}`,
       ephemeral: false,
     });
+
+    // Show active team invite channel to new member via DM
+    if (action === "yes" && currentActiveTeamInviteChannel) {
+      await interaction
+        .followUp({
+          content: `📩 There is an active invite for team **${invitedTeam}**. You can view the invite in <#${currentActiveTeamInviteChannel.channelId}>.`,
+        })
+        .catch(console.error);
+    }
   } catch (error) {
     console.error(`Error in handleAcceptRejectTeamInvite: ${error}`);
     await handleErrorMessage(
@@ -738,6 +779,126 @@ export async function handleAcceptRejectTeamInvite(interaction, client) {
     );
   }
 }
+
+async function addNewJoinedMemberToActiveTeamChannel(
+  interaction,
+  client,
+  newMember,
+  activeInviteChannel
+) {
+  try {
+    const channel = await client.channels?.fetch(activeInviteChannel.channelId);
+
+    if (!channel) {
+      return false;
+    }
+
+    const message = await channel.messages?.fetch(
+      activeInviteChannel.messageId
+    );
+
+    if (!message) {
+      return false;
+    }
+
+    // Add new joined member to the active invite channel, modify permissions so new member can see the channel
+    const currentActiveTeamInviteChannel = await client.channels?.fetch(
+      activeInviteChannel.channelId
+    );
+    if (!currentActiveTeamInviteChannel) {
+      return false;
+    }
+
+    const result = await currentActiveTeamInviteChannel.permissionOverwrites
+      .edit(newMember, {
+        ViewChannel: true,
+        SendMessages: true,
+      })
+      .then(async (channel) => {
+        console.log(
+          `Permissions updated for ${newMember} in ${channel.name} channel`
+        );
+        return true;
+      })
+      .catch(async (error) => {
+        await handleErrorMessage(
+          interaction,
+          client,
+          error,
+          `Error updating permissions for new member in channel ${channel?.name || null}. Please try again. 🔄`
+        );
+        return false;
+      });
+    return result;
+  } catch (error) {
+    console.error(`Error in addNewJoinedMemberToActiveChannel: ${error}`);
+    await handleErrorMessage(
+      interaction,
+      client,
+      error,
+      `Error adding new member to active invite channel. Please try again. 🔄`
+    );
+  }
+}
+
+// Check if user has an active team invitation channel
+async function getActiveTeamInvitationChannel(interaction, client, ownerId) {
+  try {
+    let resultInvite = null;
+    const invite = await Invites.findOne({ ownerId });
+
+    if (invite && invite.teamInvite) {
+      resultInvite = invite;
+    }
+
+    return resultInvite;
+  } catch (error) {
+    console.error(`Error in isActiveTeamInvitationChannel: ${error}`);
+    await handleErrorMessage(
+      interaction,
+      client,
+      error,
+      `Error checking user active invite channel. Please try again. 🔄`
+    );
+  }
+}
+
+// async function updateActiveTeamInviteMessage(
+//   interaction,
+//   client,
+//   newMember,
+//   channelId,
+//   messageId
+// ) {
+//   try {
+//     const channel = await client.channels?.fetch(channelId);
+//     if (!channel) {
+//       return false;
+//     }
+
+//     const message = await channel.messages?.fetch(messageId);
+//     if (!message) {
+//       return false;
+//     }
+
+//     // Send message to new member
+//     const newMemberUser = await client.users.fetch(newMember);
+//     if (!newMemberUser) {
+//       return false;
+//     }
+//     await channel.send({
+//       content: `<@${newMember}>`,
+//     });
+//   } catch (error) {
+//     console.error(`Error in updateTeamInviteMessage: ${error}`);
+//     await handleErrorMessage(
+//       interaction,
+//       client,
+//       error,
+//       `Error updating team invite message. Please try again. 🔄`
+//     );
+//   }
+// }
 
 function truncateString(str, maxLength = 1024) {
   return str.length > maxLength ? str.substring(0, maxLength - 3) + "..." : str;

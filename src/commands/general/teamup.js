@@ -284,7 +284,7 @@ export default {
         });
         teamInviteChannel.permissionOverwrites.push;
         await teamInviteChannel.send({
-          content: `${teamMembersString}`,
+          content: `${teamMembersString || "**No team members**"}`,
         });
         targetChannel = teamInviteChannel;
       }
@@ -331,7 +331,7 @@ export default {
       );
 
       await interaction.editReply({
-        content: `Team Up invite created! 🎉`,
+        content: `${isTeamInviteOnly ? `Team Up invite created! 🎉\n<#${targetChannel?.id || "404"}>` : "Team Up invite created! 🎉"}`,
         ephemeral: true,
       });
     } catch (error) {
