@@ -603,10 +603,16 @@ async function handlePromptInviteMessage(interaction, client, team, userId) {
     }
 
     const inviteMessage = new EmbedBuilder()
-      .setTitle(`Invite to join team **${team}**`)
-      .setDescription(
-        `📩 You have been invited to join team **${team}**. Do you want to join? 🤔`
-      )
+      .setTitle(`📩 You have been invited to join team: ${team}`)
+      .setDescription(`Do you want to join? 🤔`)
+      .addFields({
+        name: "🏷️ Team Name",
+        value: team,
+      })
+      .addFields({
+        name: "🧑‍💼 Team Owner",
+        value: `<@${ownerId}>`,
+      })
       .setColor("#5865F2")
       .setTimestamp();
 
