@@ -329,7 +329,10 @@ async function addTeamMembers(interaction, client) {
     }
 
     // If no new members added to team and no invites sent
-    if (message.length === 0 || !selectedTeamMembers.length && totalInvitedMembers === 0) {
+    if (
+      message.length === 0 ||
+      (!selectedTeamMembers.length && totalInvitedMembers === 0)
+    ) {
       await interaction.followUp({
         content: `No new members added to team **${currentSelectedTeam}**.`,
         ephemeral: true,
@@ -600,10 +603,16 @@ async function handlePromptInviteMessage(interaction, client, team, userId) {
     }
 
     const inviteMessage = new EmbedBuilder()
-      .setTitle(`Invite to join team **${team}**`)
-      .setDescription(
-        `📩 You have been invited to join team **${team}**. Do you want to join? 🤔`
-      )
+      .setTitle(`📩 You have been invited to join team: ${team}`)
+      .setDescription(`Do you want to join? 🤔`)
+      .addFields({
+        name: "🏷️ Team Name",
+        value: team,
+      })
+      .addFields({
+        name: "🧑‍💼 Team Owner",
+        value: `<@${ownerId}>`,
+      })
       .setColor("#5865F2")
       .setTimestamp();
 
