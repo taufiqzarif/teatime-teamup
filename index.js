@@ -2,6 +2,7 @@ import "dotenv/config";
 import fs from "fs";
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 import { connect } from "mongoose";
+import { migrateJoinedTeams } from "./src/schema/runMigration.js";
 
 const { TOKEN, DBTOKEN } = process.env;
 
@@ -42,4 +43,5 @@ for (const folder of functionPath) {
 client.login(TOKEN);
 (async () => {
   await connect(DBTOKEN).catch((err) => console.error(err));
+  // await migrateJoinedTeams();
 })();
